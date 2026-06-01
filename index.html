@@ -3,7 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>QuantumTrader | Pro Tracker V7.7</title>
+    <title>QuantumTrader | Pro Tracker V7.11</title>
+    
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#020617">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/2933/2933116.png">
+
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script type="text/javascript" src="https://s3.tradingview.com/tv.js"></script>
@@ -72,7 +79,7 @@
     <div class="max-w-[1600px] mx-auto">
         <header class="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 border-b border-slate-800 pb-6 gap-4">
             <div>
-                <h1 class="text-3xl font-black tracking-tight">QUANTUM<span class="text-transparent bg-clip-text bg-gradient-to-r from-sky-400 to-indigo-500">TRADER</span> <span class="text-[10px] bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-2 py-0.5 rounded ml-2 align-middle font-bold">V7.7 PRO</span></h1>
+                <h1 class="text-3xl font-black tracking-tight">QUANTUM<span class="text-transparent bg-clip-text bg-gradient-to-r from-sky-400 to-indigo-500">TRADER</span> <span class="text-[10px] bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-2 py-0.5 rounded ml-2 align-middle font-bold">V7.11 PUSH</span></h1>
                 <p class="text-xs text-slate-400 mt-2 uppercase tracking-widest font-mono">Real-Time Portfolio & Chart Engine</p>
             </div>
             
@@ -134,8 +141,8 @@
                             </div>
                             <div class="grid grid-cols-2 gap-3">
                                 <div>
-                                    <label class="block text-[10px] font-semibold text-rose-400 mb-1 uppercase">Stop Loss</label>
-                                    <input type="number" id="sl" placeholder="0.00" step="any" class="input-ultra font-mono text-xs border-rose-900/30 bg-rose-950/10">
+                                    <label class="block text-[10px] font-semibold text-rose-400 mb-1 uppercase">Stop Loss (%)</label>
+                                    <input type="number" id="sl_pct" placeholder="e.g. 1.5" step="any" class="input-ultra font-mono text-xs border-rose-900/30 bg-rose-950/10">
                                 </div>
                                 <div>
                                     <label class="block text-[10px] font-semibold text-emerald-400 mb-1 uppercase">Target</label>
@@ -182,6 +189,9 @@
                             <span class="w-2 h-2 rounded-full bg-sky-400 live-glow"></span> Active Positions
                         </h3>
                         <div class="flex gap-2">
+                            <button onclick="requestNotificationPermission()" class="text-[10px] bg-purple-500/20 hover:bg-purple-500/40 text-purple-300 px-3 py-1.5 rounded uppercase font-bold tracking-wider transition border border-purple-500/30">
+                                🔔 Allow Alerts
+                            </button>
                             <button id="autoSyncBtn" onclick="toggleAutoSync()" class="text-[10px] bg-slate-800 hover:bg-slate-700 text-slate-400 px-3 py-1.5 rounded uppercase font-bold tracking-wider transition border border-slate-700">
                                 Auto-Sync: OFF 🔴
                             </button>
@@ -264,13 +274,36 @@
     </div>
 
     <script>
-        // Data & State
+        // ================= SERVICE WORKER REGISTRATION (FOR APP INSTALL) =================
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('sw.js')
+            .then(() => console.log("PWA Service Worker Registered!"))
+            .catch(err => console.error("Service Worker Error:", err));
+        }
+
+        // ================= NOTIFICATION PERMISSION =================
+        function requestNotificationPermission() {
+            if (!("Notification" in window)) {
+                alert("This browser does not support mobile push notifications.");
+            } else if (Notification.permission === "granted") {
+                alert("Notifications are already enabled! You will receive SL alerts.");
+            } else if (Notification.permission !== "denied") {
+                Notification.requestPermission().then(permission => {
+                    if (permission === "granted") {
+                        alert("Notifications activated! You will now receive system SL alerts.");
+                    }
+                });
+            }
+        }
+
+        // ================= MAIN JAVASCRIPT LOGIC =================
         let trades = JSON.parse(localStorage.getItem('v6TVTrackerDB')) || [];
         let autoSyncTimer = null;
         let isAutoSyncing = false;
         let currentView = 'main';
 
-        // ------------------ TradingView Logic ------------------
+        const alertSound = new Audio('https://actions.google.com/sounds/v1/alarms/beep_short.ogg');
+
         function formatTVSymbol(symbol) {
             if (symbol === "NIFTY") return "BSE:NIFTY50";
             if (symbol === "BANKNIFTY") return "BSE:BANKNIFTY";
@@ -304,7 +337,6 @@
 
         window.onload = () => { loadMainChart("NIFTY"); };
 
-        // ------------------ View Toggling Logic ------------------
         function toggleView(view) {
             currentView = view;
             const btnMain = document.getElementById('btnMain');
@@ -363,7 +395,6 @@
                 const card = document.createElement('div');
                 card.className = 'glass-card flex flex-col h-[350px] overflow-hidden border-t-2 border-t-sky-500';
                 
-                // Updated Font Sizes for Grid View (Used & P&L)
                 card.innerHTML = `
                     <div class="px-3 py-2 bg-slate-900/50 border-b border-slate-800 flex justify-between items-center">
                         <span class="font-bold text-white font-mono text-sm">${t.symbol}</span>
@@ -397,8 +428,6 @@
             });
         }
 
-
-        // ------------------ Datalist Populator ------------------
         const popularStocks = [
             "NIFTY", "BANKNIFTY", "FINNIFTY", "MIDCPNIFTY", "SENSEX",
             "RELIANCE", "TCS", "HDFCBANK", "ICICIBANK", "INFY", "SBIN", 
@@ -414,7 +443,40 @@
             datalist.appendChild(option);
         });
 
-        // ------------------ Trade Logic ------------------
+        // ================= PUSH NOTIFICATION & SL CHECK =================
+        function checkStopLoss(trade) {
+            if (trade.sl && !trade.slHit) {
+                if ((trade.type === 'LONG' && trade.liveCMP <= trade.sl) || 
+                    (trade.type === 'SHORT' && trade.liveCMP >= trade.sl)) {
+                    
+                    trade.slHit = true;
+                    saveData();
+                    
+                    const alertTitle = `🚨 SL HIT: ${trade.symbol}`;
+                    const alertBody = `Type: ${trade.type} | SL: ₹${trade.sl.toFixed(2)} | Current: ₹${trade.liveCMP}`;
+
+                    // Play Sound
+                    alertSound.play().catch(e => console.log("Audio play blocked"));
+                    
+                    // Native Push Notification
+                    if ("Notification" in window && Notification.permission === "granted") {
+                        navigator.serviceWorker.ready.then(registration => {
+                            registration.showNotification(alertTitle, {
+                                body: alertBody,
+                                icon: 'https://cdn-icons-png.flaticon.com/512/2933/2933116.png',
+                                vibrate: [200, 100, 200, 100, 200],
+                                requireInteraction: true,
+                                tag: 'sl-alert'
+                            });
+                        });
+                    } else {
+                        // Fallback Browser Alert if permission not granted
+                        alert(`${alertTitle}\n\n${alertBody}`);
+                    }
+                }
+            }
+        }
+
         document.getElementById('tradeForm').addEventListener('submit', function(e) {
             e.preventDefault();
             
@@ -424,8 +486,16 @@
             const qty = parseFloat(document.getElementById('qty').value);
             const entry = parseFloat(document.getElementById('entry').value);
             
-            const slVal = document.getElementById('sl').value;
-            const sl = (slVal !== "" && !isNaN(slVal)) ? parseFloat(slVal) : null;
+            const slPctVal = document.getElementById('sl_pct').value;
+            let sl = null;
+            if(slPctVal !== "" && !isNaN(slPctVal)) {
+                const pct = parseFloat(slPctVal);
+                if(type === 'LONG') {
+                    sl = entry - (entry * pct / 100);
+                } else {
+                    sl = entry + (entry * pct / 100);
+                }
+            }
 
             const exitVal = document.getElementById('exit').value;
             const isClosed = exitVal !== "" && !isNaN(exitVal);
@@ -441,7 +511,7 @@
 
             const trade = { 
                 id: Date.now(), date: dateStr, symbol, tag, type, qty, entry, sl, exit, pnl, 
-                status: isClosed ? 'CLOSED' : 'OPEN', liveCMP: entry
+                status: isClosed ? 'CLOSED' : 'OPEN', liveCMP: entry, slHit: false
             };
             
             trades.unshift(trade); 
@@ -476,6 +546,7 @@
             const tradeIndex = trades.findIndex(t => t.id === id);
             if(tradeIndex > -1) {
                 trades[tradeIndex].liveCMP = val;
+                checkStopLoss(trades[tradeIndex]);
                 saveData(); renderUI();
             }
         }
@@ -486,11 +557,16 @@
 
             for(let t of openTrades) {
                 try {
+                    if(t.slHit === undefined) t.slHit = false; 
                     let sym = t.symbol.includes('.') ? t.symbol : t.symbol + '.NS';
-                    const res = await fetch(`http://127.0.0.1:5000/api/price/${sym}`);
+                    
+                    const res = await fetch(`https://quantum-trader-rlme.onrender.com/api/price/${sym}`);
                     const data = await res.json();
                     
-                    if(data.status === 'success') { t.liveCMP = data.price; }
+                    if(data.status === 'success') { 
+                        t.liveCMP = data.price; 
+                        checkStopLoss(t); 
+                    }
                 } catch(e) { console.log(`Failed to fetch ${t.symbol}`); }
             }
             saveData(); renderUI();
@@ -571,9 +647,11 @@
                         ? `<span class="bg-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded text-[10px] font-bold border border-emerald-500/30">L</span>` 
                         : `<span class="bg-rose-500/20 text-rose-400 px-2 py-0.5 rounded text-[10px] font-bold border border-rose-500/30">S</span>`;
                         
-                    // Show SL badge if it exists
+                    let slDisplayClass = t.slHit ? "text-rose-100 bg-rose-600 border-rose-500" : "text-rose-400 bg-rose-500/10 border-rose-500/20";
+                    let slText = t.slHit ? "SL HIT!" : `SL: ₹${t.sl ? t.sl.toFixed(2) : ''}`;
+                    
                     const slBadge = t.sl 
-                        ? `<br><span class="inline-block mt-1 text-[10px] text-rose-400 border border-rose-500/20 bg-rose-500/10 px-1.5 py-0.5 rounded font-bold">SL: ₹${t.sl.toFixed(2)}</span>` 
+                        ? `<br><span class="inline-block mt-1 text-[10px] border px-1.5 py-0.5 rounded font-bold ${slDisplayClass}">${slText}</span>` 
                         : '';
 
                     const row = `
