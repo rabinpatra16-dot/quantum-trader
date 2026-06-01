@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>QuantumTrader | Cloud Sync V8.0</title>
+    <title>QuantumTrader | Cloud Sync V8.2</title>
     
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#020617">
@@ -82,7 +82,7 @@
     <div class="max-w-[1600px] mx-auto">
         <header class="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 border-b border-slate-800 pb-6 gap-4">
             <div>
-                <h1 class="text-3xl font-black tracking-tight">QUANTUM<span class="text-transparent bg-clip-text bg-gradient-to-r from-sky-400 to-indigo-500">TRADER</span> <span class="text-[10px] bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-2 py-0.5 rounded ml-2 align-middle font-bold">V8.0 CLOUD</span></h1>
+                <h1 class="text-3xl font-black tracking-tight">QUANTUM<span class="text-transparent bg-clip-text bg-gradient-to-r from-sky-400 to-indigo-500">TRADER</span> <span class="text-[10px] bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-2 py-0.5 rounded ml-2 align-middle font-bold">V8.2 EDIT</span></h1>
                 <p class="text-xs text-slate-400 mt-2 uppercase tracking-widest font-mono">Real-Time Portfolio & Chart Engine</p>
             </div>
             
@@ -276,20 +276,51 @@
         </div>
     </div>
 
+    <div id="editModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm hidden items-center justify-center z-50">
+        <div class="glass-card p-6 w-full max-w-sm border-sky-500/30">
+            <h3 class="text-sm font-bold text-sky-400 mb-4 uppercase tracking-wider flex items-center gap-2" id="editModalTitle">✏️ Edit Position</h3>
+            <input type="hidden" id="editTradeId">
+            
+            <div class="space-y-4 mb-5">
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-[10px] font-semibold text-slate-400 mb-1 uppercase">Quantity</label>
+                        <input type="number" id="editQty" step="any" required class="input-ultra font-mono text-sm">
+                    </div>
+                    <div>
+                        <label class="block text-[10px] font-semibold text-slate-400 mb-1 uppercase">Entry Price</label>
+                        <input type="number" id="editEntry" step="any" required class="input-ultra font-mono text-sm text-sky-400">
+                    </div>
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-[10px] font-semibold text-rose-400 mb-1 uppercase">SL Price (₹)</label>
+                        <input type="number" id="editSL" step="any" class="input-ultra font-mono text-xs border-rose-900/30 bg-rose-950/10 text-rose-300">
+                    </div>
+                    <div>
+                        <label class="block text-[10px] font-semibold text-emerald-400 mb-1 uppercase">Target (₹)</label>
+                        <input type="number" id="editExit" step="any" class="input-ultra font-mono text-xs border-emerald-900/30 bg-emerald-950/10 text-emerald-300">
+                    </div>
+                </div>
+            </div>
+
+            <div class="flex gap-3">
+                <button onclick="closeEditModal()" class="flex-1 bg-slate-800 text-white text-xs py-3 rounded-lg font-bold">Cancel</button>
+                <button onclick="submitEditTrade()" class="flex-1 bg-sky-600 hover:bg-sky-500 text-white text-xs py-3 rounded-lg font-bold">Save Changes</button>
+            </div>
+        </div>
+    </div>
+
     <script>
-        // ================= SERVICE WORKER REGISTRATION (FOR APP INSTALL) =================
+        // ================= SERVICE WORKER =================
         if ('serviceWorker' in navigator) {
             navigator.serviceWorker.register('sw.js')
             .then(() => console.log("PWA Service Worker Registered!"))
             .catch(err => console.error("Service Worker Error:", err));
         }
 
-        // =========================================================================
-        // !!! YOUR FIREBASE REALTIME DATABASE URL !!!
-        // =========================================================================
+        // ================= FIREBASE CLOUD URL =================
         const FIREBASE_DB_URL = "https://quantum-tracker-6fe30-default-rtdb.firebaseio.com";
-
-        // ================= FIREBASE INITIALIZATION =================
         firebase.initializeApp({ databaseURL: FIREBASE_DB_URL });
         const fbDatabase = firebase.database();
 
@@ -298,10 +329,25 @@
         let autoSyncTimer = null;
         let isAutoSyncing = false;
         let currentView = 'main';
-
         const alertSound = new Audio('https://actions.google.com/sounds/v1/alarms/beep_short.ogg');
 
-        // ================= REAL-TIME CLOUD SYNC (FIREBASE) =================
+        // ================= POPULATE TICKER SUGGESTIONS =================
+        const popularStocks = [
+            "NIFTY", "BANKNIFTY", "FINNIFTY", "MIDCPNIFTY", "SENSEX",
+            "RELIANCE", "TCS", "HDFCBANK", "ICICIBANK", "INFY", "SBIN", 
+            "BHARTIARTL", "ITC", "KOTAKBANK", "LT", "AXISBANK", "BAJFINANCE", 
+            "ASIANPAINT", "MARUTI", "SUNPHARMA", "TITAN", "TATAMOTORS", 
+            "TATASTEEL", "ADANIENT", "ZOMATO", "JIOFIN", "SUZLON", "IRFC", 
+            "RVNL", "HAL", "BHEL", "TRENT", "BTCUSDT", "ETHUSDT"
+        ];
+        const datalist = document.getElementById('tickers');
+        popularStocks.forEach(stock => {
+            let option = document.createElement('option');
+            option.value = stock;
+            datalist.appendChild(option);
+        });
+
+        // ================= REAL-TIME CLOUD SYNC =================
         fbDatabase.ref('trades').on('value', (snapshot) => {
             const data = snapshot.val();
             trades = data || [];
@@ -309,12 +355,9 @@
             if(currentView === 'grid') renderMultiCharts();
         });
 
-        // ================= SAVE DATA TO CLOUD =================
-        function saveData() { 
-            fbDatabase.ref('trades').set(trades); 
-        }
+        function saveData() { fbDatabase.ref('trades').set(trades); }
 
-        // ================= NOTIFICATION PERMISSION =================
+        // ================= NOTIFICATIONS =================
         function requestNotificationPermission() {
             if (!("Notification" in window)) {
                 alert("This browser does not support mobile push notifications.");
@@ -322,14 +365,12 @@
                 alert("Notifications are already enabled! You will receive SL alerts.");
             } else if (Notification.permission !== "denied") {
                 Notification.requestPermission().then(permission => {
-                    if (permission === "granted") {
-                        alert("Notifications activated! You will now receive system SL alerts.");
-                    }
+                    if (permission === "granted") alert("Notifications activated!");
                 });
             }
         }
 
-        // ================= TRADINGVIEW & UI LOGIC =================
+        // ================= TRADINGVIEW LOGIC =================
         function formatTVSymbol(symbol) {
             if (symbol === "NIFTY") return "BSE:NIFTY50";
             if (symbol === "BANKNIFTY") return "BSE:BANKNIFTY";
@@ -342,22 +383,7 @@
         function loadMainChart(symbol) {
             document.getElementById('tv_chart_container').innerHTML = ''; 
             new TradingView.widget({
-                "autosize": true,
-                "symbol": formatTVSymbol(symbol),
-                "interval": "D",
-                "timezone": "Asia/Kolkata",
-                "theme": "dark",
-                "style": "1",
-                "locale": "in",
-                "enable_publishing": false,
-                "backgroundColor": "#0f172a",
-                "gridColor": "#1e293b",
-                "hide_top_toolbar": false, 
-                "hide_side_toolbar": false, 
-                "allow_symbol_change": true, 
-                "hide_legend": false,
-                "save_image": false,
-                "container_id": "tv_chart_container"
+                "autosize": true, "symbol": formatTVSymbol(symbol), "interval": "D", "timezone": "Asia/Kolkata", "theme": "dark", "style": "1", "locale": "in", "enable_publishing": false, "backgroundColor": "#0f172a", "gridColor": "#1e293b", "hide_top_toolbar": false, "hide_side_toolbar": false, "allow_symbol_change": true, "hide_legend": false, "save_image": false, "container_id": "tv_chart_container"
             });
         }
 
@@ -369,22 +395,14 @@
             const viewGrid = document.getElementById('view-grid');
 
             if(view === 'grid') {
-                viewMain.classList.add('hidden');
-                viewGrid.classList.remove('hidden');
-                btnGrid.classList.replace('text-slate-400', 'text-white');
-                btnGrid.classList.replace('border-transparent', 'border-slate-700');
-                btnGrid.classList.add('bg-slate-800', 'shadow-inner');
-                btnMain.classList.remove('bg-slate-800', 'shadow-inner', 'text-white', 'border-slate-700');
-                btnMain.classList.add('text-slate-400', 'border-transparent');
+                viewMain.classList.add('hidden'); viewGrid.classList.remove('hidden');
+                btnGrid.classList.replace('text-slate-400', 'text-white'); btnGrid.classList.replace('border-transparent', 'border-slate-700'); btnGrid.classList.add('bg-slate-800', 'shadow-inner');
+                btnMain.classList.remove('bg-slate-800', 'shadow-inner', 'text-white', 'border-slate-700'); btnMain.classList.add('text-slate-400', 'border-transparent');
                 renderMultiCharts();
             } else {
-                viewGrid.classList.add('hidden');
-                viewMain.classList.remove('hidden');
-                btnMain.classList.replace('text-slate-400', 'text-white');
-                btnMain.classList.replace('border-transparent', 'border-slate-700');
-                btnMain.classList.add('bg-slate-800', 'shadow-inner');
-                btnGrid.classList.remove('bg-slate-800', 'shadow-inner', 'text-white', 'border-slate-700');
-                btnGrid.classList.add('text-slate-400', 'border-transparent');
+                viewGrid.classList.add('hidden'); viewMain.classList.remove('hidden');
+                btnMain.classList.replace('text-slate-400', 'text-white'); btnMain.classList.replace('border-transparent', 'border-slate-700'); btnMain.classList.add('bg-slate-800', 'shadow-inner');
+                btnGrid.classList.remove('bg-slate-800', 'shadow-inner', 'text-white', 'border-slate-700'); btnGrid.classList.add('text-slate-400', 'border-transparent');
             }
         }
 
@@ -393,48 +411,32 @@
             container.innerHTML = ''; 
             const openTrades = trades.filter(t => t.status === 'OPEN');
             if(openTrades.length === 0) {
-                container.innerHTML = `<div class="col-span-full glass-card p-12 text-center text-slate-500 font-mono">No active positions to display in grid.</div>`;
-                return;
+                container.innerHTML = `<div class="col-span-full glass-card p-12 text-center text-slate-500 font-mono">No active positions to display in grid.</div>`; return;
             }
             openTrades.forEach(t => {
                 const chartId = 'tv_mini_' + t.id;
-                const liveCMP = t.liveCMP || t.entry;
-                const invested = t.qty * t.entry;
+                const liveCMP = t.liveCMP || t.entry; const invested = t.qty * t.entry;
                 const unrealized = t.type === 'LONG' ? (liveCMP - t.entry) * t.qty : (t.entry - liveCMP) * t.qty;
                 const pnlColor = unrealized >= 0 ? 'text-emerald-400' : 'text-rose-400';
                 const sign = unrealized >= 0 ? '+' : '';
                 const card = document.createElement('div');
                 card.className = 'glass-card flex flex-col h-[350px] overflow-hidden border-t-2 border-t-sky-500';
-                card.innerHTML = `
-                    <div class="px-3 py-2 bg-slate-900/50 border-b border-slate-800 flex justify-between items-center">
-                        <span class="font-bold text-white font-mono text-sm">${t.symbol}</span>
-                        <span class="text-[10px] font-bold px-2 py-0.5 rounded ${t.type === 'LONG' ? 'bg-emerald-500/20 text-emerald-400' : 'bg-rose-500/20 text-rose-400'}">${t.type} x${t.qty}</span>
-                    </div>
-                    <div class="px-3 py-2 bg-slate-950 border-b border-slate-800 flex justify-between items-center font-mono tracking-tight">
-                        <span class="text-slate-300 font-bold text-[13px]">Used: ₹${invested.toLocaleString('en-IN', {maximumFractionDigits:0})}</span>
-                        <span id="grid-pnl-${t.id}" class="font-black ${pnlColor} text-[15px]">P&L: ${sign}₹${unrealized.toFixed(2)}</span>
-                    </div>
-                    <div id="${chartId}" class="w-full flex-1"></div>`;
+                card.innerHTML = `<div class="px-3 py-2 bg-slate-900/50 border-b border-slate-800 flex justify-between items-center"><span class="font-bold text-white font-mono text-sm">${t.symbol}</span><span class="text-[10px] font-bold px-2 py-0.5 rounded ${t.type === 'LONG' ? 'bg-emerald-500/20 text-emerald-400' : 'bg-rose-500/20 text-rose-400'}">${t.type} x${t.qty}</span></div><div class="px-3 py-2 bg-slate-950 border-b border-slate-800 flex justify-between items-center font-mono tracking-tight"><span class="text-slate-300 font-bold text-[13px]">Used: ₹${invested.toLocaleString('en-IN', {maximumFractionDigits:0})}</span><span id="grid-pnl-${t.id}" class="font-black ${pnlColor} text-[15px]">P&L: ${sign}₹${unrealized.toFixed(2)}</span></div><div id="${chartId}" class="w-full flex-1"></div>`;
                 container.appendChild(card);
-                new TradingView.widget({
-                    "autosize": true, "symbol": formatTVSymbol(t.symbol), "interval": "D", "timezone": "Asia/Kolkata", "theme": "dark", "style": "1", "locale": "in", "enable_publishing": false, "backgroundColor": "#0f172a", "hide_top_toolbar": true, "hide_side_toolbar": true, "hide_legend": true, "save_image": false, "container_id": chartId
-                });
+                new TradingView.widget({ "autosize": true, "symbol": formatTVSymbol(t.symbol), "interval": "D", "timezone": "Asia/Kolkata", "theme": "dark", "style": "1", "locale": "in", "enable_publishing": false, "backgroundColor": "#0f172a", "hide_top_toolbar": true, "hide_side_toolbar": true, "hide_legend": true, "save_image": false, "container_id": chartId });
             });
         }
 
+        // ================= TRADE & SL LOGIC =================
         function checkStopLoss(trade) {
             if (trade.sl && !trade.slHit) {
                 if ((trade.type === 'LONG' && trade.liveCMP <= trade.sl) || (trade.type === 'SHORT' && trade.liveCMP >= trade.sl)) {
-                    trade.slHit = true;
-                    saveData();
-                    const alertTitle = `🚨 SL HIT: ${trade.symbol}`;
-                    const alertBody = `Type: ${trade.type} | SL: ₹${trade.sl.toFixed(2)} | Current: ₹${trade.liveCMP}`;
+                    trade.slHit = true; saveData();
+                    const title = `🚨 SL HIT: ${trade.symbol}`; const body = `Type: ${trade.type} | SL: ₹${trade.sl.toFixed(2)} | Current: ₹${trade.liveCMP}`;
                     alertSound.play().catch(e => console.log("Audio play blocked"));
                     if ("Notification" in window && Notification.permission === "granted") {
-                        navigator.serviceWorker.ready.then(reg => {
-                            reg.showNotification(alertTitle, { body: alertBody, icon: 'https://cdn-icons-png.flaticon.com/512/2933/2933116.png', vibrate: [200, 100, 200], requireInteraction: true });
-                        });
-                    } else { alert(`${alertTitle}\n\n${alertBody}`); }
+                        navigator.serviceWorker.ready.then(reg => { reg.showNotification(title, { body: body, icon: 'https://cdn-icons-png.flaticon.com/512/2933/2933116.png', vibrate: [200, 100, 200], requireInteraction: true }); });
+                    } else { alert(`${title}\n\n${body}`); }
                 }
             }
         }
@@ -442,29 +444,18 @@
         document.getElementById('tradeForm').addEventListener('submit', function(e) {
             e.preventDefault();
             const symbol = document.getElementById('symbol').value.toUpperCase().trim();
-            const tag = document.getElementById('tag').value;
-            const type = document.getElementById('type').value;
-            const qty = parseFloat(document.getElementById('qty').value);
-            const entry = parseFloat(document.getElementById('entry').value);
+            const tag = document.getElementById('tag').value; const type = document.getElementById('type').value;
+            const qty = parseFloat(document.getElementById('qty').value); const entry = parseFloat(document.getElementById('entry').value);
             const slPctVal = document.getElementById('sl_pct').value;
             let sl = null;
-            if(slPctVal !== "" && !isNaN(slPctVal)) {
-                const pct = parseFloat(slPctVal);
-                sl = type === 'LONG' ? entry - (entry * pct / 100) : entry + (entry * pct / 100);
-            }
-            const exitVal = document.getElementById('exit').value;
-            const isClosed = exitVal !== "" && !isNaN(exitVal);
+            if(slPctVal !== "" && !isNaN(slPctVal)) { sl = type === 'LONG' ? entry - (entry * parseFloat(slPctVal) / 100) : entry + (entry * parseFloat(slPctVal) / 100); }
+            const exitVal = document.getElementById('exit').value; const isClosed = exitVal !== "" && !isNaN(exitVal);
             const exit = isClosed ? parseFloat(exitVal) : null;
-            const now = new Date();
-            const dateStr = now.toLocaleDateString('en-GB', {day:'2-digit', month:'short'}) + ' ' + now.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+            const now = new Date(); const dateStr = now.toLocaleDateString('en-GB', {day:'2-digit', month:'short'}) + ' ' + now.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
             let pnl = isClosed ? (type === 'LONG' ? (exit - entry) * qty : (entry - exit) * qty) : 0;
 
             const trade = { id: Date.now(), date: dateStr, symbol, tag, type, qty, entry, sl, exit, pnl, status: isClosed ? 'CLOSED' : 'OPEN', liveCMP: entry, slHit: false };
-            trades.unshift(trade); 
-            saveData();
-            loadMainChart(symbol);
-            this.reset();
-            document.getElementById('symbol').focus();
+            trades.unshift(trade); saveData(); loadMainChart(symbol); this.reset(); document.getElementById('symbol').focus();
         });
 
         function clearHistory() { if(confirm("Wipe entire database?")) { trades = []; saveData(); } }
@@ -482,10 +473,8 @@
                 try {
                     if(t.slHit === undefined) t.slHit = false;
                     let sym = t.symbol.includes('.') ? t.symbol : t.symbol + '.NS';
-                    
                     const res = await fetch(`https://quantum-trader-rlme.onrender.com/api/price/${sym}`);
                     const data = await res.json();
-                    
                     if(data.status === 'success') { t.liveCMP = data.price; checkStopLoss(t); }
                 } catch(e) { console.log(`Fetch error ${t.symbol}`); }
             }
@@ -493,29 +482,61 @@
         }
 
         function toggleAutoSync() {
-            isAutoSyncing = !isAutoSyncing;
-            const btn = document.getElementById('autoSyncBtn');
+            isAutoSyncing = !isAutoSyncing; const btn = document.getElementById('autoSyncBtn');
             if(isAutoSyncing) {
-                btn.innerHTML = "Auto-Sync: ON 🟢";
-                btn.className = "text-[10px] bg-emerald-500/20 text-emerald-300 px-3 py-1.5 rounded uppercase font-bold border border-emerald-500/40 sync-active-glow";
+                btn.innerHTML = "Auto-Sync: ON 🟢"; btn.className = "text-[10px] bg-emerald-500/20 text-emerald-300 px-3 py-1.5 rounded uppercase font-bold border border-emerald-500/40 sync-active-glow";
                 fetchLiveCMPFromPython(); autoSyncTimer = setInterval(fetchLiveCMPFromPython, 15000);
             } else {
-                btn.innerHTML = "Auto-Sync: OFF 🔴";
-                btn.className = "text-[10px] bg-slate-800 text-slate-400 px-3 py-1.5 rounded uppercase font-bold border border-slate-700";
+                btn.innerHTML = "Auto-Sync: OFF 🔴"; btn.className = "text-[10px] bg-slate-800 text-slate-400 px-3 py-1.5 rounded uppercase font-bold border border-slate-700";
                 clearInterval(autoSyncTimer);
             }
         }
 
+        // ================= EDIT MODAL LOGIC =================
+        function openEditModal(id) {
+            const trade = trades.find(t => t.id === id);
+            if(!trade) return;
+            document.getElementById('editTradeId').value = id;
+            document.getElementById('editModalTitle').innerHTML = `✏️ Edit ${trade.symbol}`;
+            document.getElementById('editQty').value = trade.qty;
+            document.getElementById('editEntry').value = trade.entry;
+            document.getElementById('editSL').value = trade.sl || '';
+            document.getElementById('editExit').value = trade.exit || '';
+            document.getElementById('editModal').style.display = 'flex';
+        }
+        function closeEditModal() { document.getElementById('editModal').style.display = 'none'; }
+        
+        function submitEditTrade() {
+            const id = parseInt(document.getElementById('editTradeId').value);
+            const qty = parseFloat(document.getElementById('editQty').value);
+            const entry = parseFloat(document.getElementById('editEntry').value);
+            const slVal = document.getElementById('editSL').value;
+            const exitVal = document.getElementById('editExit').value;
+
+            const trade = trades.find(t => t.id === id);
+            if(trade) {
+                if(!isNaN(qty)) trade.qty = qty;
+                if(!isNaN(entry)) trade.entry = entry;
+                
+                trade.sl = slVal !== "" ? parseFloat(slVal) : null;
+                trade.exit = exitVal !== "" ? parseFloat(exitVal) : null;
+                
+                // Reset slHit flag if SL is modified so it can trigger again
+                trade.slHit = false; 
+                
+                saveData();
+                closeEditModal();
+            }
+        }
+
+        // ================= EXIT MODAL LOGIC =================
         function openCloseModal(id, symbol) {
-            document.getElementById('modalTradeId').value = id;
-            document.getElementById('modalTitle').innerText = `Close ${symbol}`;
-            document.getElementById('closeModal').style.display = 'flex';
+            document.getElementById('modalTradeId').value = id; document.getElementById('modalTitle').innerText = `Close ${symbol}`; document.getElementById('closeModal').style.display = 'flex';
         }
         function closeModalFunc() { document.getElementById('closeModal').style.display = 'none'; }
         
         function submitCloseTrade() {
-            const id = parseInt(document.getElementById('modalTradeId').value);
-            const exit = parseFloat(document.getElementById('modalExitPrice').value);
+            const id = parseInt(document.getElementById('modalTradeId').value); const exit = parseFloat(document.getElementById('modalExitPrice').value);
             if(isNaN(exit)) return alert("Invalid exit price");
             const trade = trades.find(t => t.id === id);
             if(trade) {
@@ -525,13 +546,12 @@
             }
         }
 
+        // ================= UI RENDER =================
         function renderUI() {
-            const openBody = document.getElementById('openPositionsBody');
-            const closedBody = document.getElementById('closedTradeBody');
+            const openBody = document.getElementById('openPositionsBody'); const closedBody = document.getElementById('closedTradeBody');
             openBody.innerHTML = ''; closedBody.innerHTML = '';
             let totalRealizedPnL = 0, totalWins = 0, closedCount = 0, totalInvestedAmt = 0, totalUnrealizedPnL = 0;
-            const openTrades = trades.filter(t => t.status === 'OPEN');
-            const closedTrades = trades.filter(t => t.status === 'CLOSED');
+            const openTrades = trades.filter(t => t.status === 'OPEN'); const closedTrades = trades.filter(t => t.status === 'CLOSED');
 
             if(openTrades.length === 0) { document.getElementById('noOpenState').style.display = 'block'; } 
             else {
@@ -539,29 +559,26 @@
                 openTrades.forEach(t => {
                     const invested = t.qty * t.entry; totalInvestedAmt += invested;
                     const liveCMP = t.liveCMP || t.entry;
-                    let unrealized = t.type === 'LONG' ? (liveCMP - t.entry) * t.qty : (t.entry - liveCMP) * t.qty;
-                    totalUnrealizedPnL += unrealized;
-                    const pnlColor = unrealized >= 0 ? 'text-emerald-400' : 'text-rose-400';
-                    const sign = unrealized >= 0 ? '+' : '';
+                    let unrealized = t.type === 'LONG' ? (liveCMP - t.entry) * t.qty : (t.entry - liveCMP) * t.qty; totalUnrealizedPnL += unrealized;
+                    const pnlColor = unrealized >= 0 ? 'text-emerald-400' : 'text-rose-400'; const sign = unrealized >= 0 ? '+' : '';
                     const typeBadge = t.type === 'LONG' ? `<span class="bg-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded text-[10px] font-bold border border-emerald-500/30">L</span>` : `<span class="bg-rose-500/20 text-rose-400 px-2 py-0.5 rounded text-[10px] font-bold border border-rose-500/30">S</span>`;
                     let slDisplayClass = t.slHit ? "text-rose-100 bg-rose-600 border-rose-500" : "text-rose-400 bg-rose-500/10 border-rose-500/20";
                     const slBadge = t.sl ? `<br><span class="inline-block mt-1 text-[10px] border px-1.5 py-0.5 rounded font-bold ${slDisplayClass}">${t.slHit ? "SL HIT!" : 'SL: ₹'+t.sl.toFixed(2)}</span>` : '';
 
-                    const row = `
-                        <tr class="hover:bg-slate-800/50 transition-colors">
-                            <td class="py-3 px-5 font-bold font-mono text-white text-sm">${t.symbol}</td>
-                            <td class="py-3 px-5 text-center font-black font-mono text-sky-400 text-base">${t.qty}</td>
-                            <td class="py-3 px-5">${typeBadge} <span class="text-[9px] ml-1 text-slate-400">${t.tag}</span></td>
-                            <td class="py-3 px-5 font-mono text-xs text-sky-300">₹${t.entry.toFixed(2)}${slBadge}</td>
-                            <td class="py-3 px-5 font-mono text-xs text-slate-300">₹${invested.toLocaleString('en-IN', {maximumFractionDigits:0})}</td>
-                            <td class="py-3 px-5 text-center"><input type="number" step="any" value="${liveCMP}" onchange="updateLiveCMP(${t.id}, this.value)" class="w-20 bg-slate-900 border border-slate-700 rounded p-1 text-xs font-mono text-center text-white outline-none focus:border-sky-500"></td>
-                            <td class="py-3 px-5 font-bold font-mono text-right ${pnlColor} text-sm">${sign}₹${unrealized.toFixed(2)}</td>
-                            <td class="py-3 px-5 text-center flex justify-center items-center gap-1.5">
-                                <button onclick="loadMainChart('${t.symbol}')" class="bg-sky-500/20 text-sky-300 border border-sky-500/30 px-2.5 py-1 rounded text-[10px] font-bold uppercase">📉 Chart</button>
-                                <button onclick="openCloseModal(${t.id}, '${t.symbol}')" class="bg-purple-600/20 text-purple-400 border border-purple-500/30 px-2.5 py-1 rounded text-[10px] font-bold uppercase">Exit</button>
-                                <button onclick="deleteTrade(${t.id})" class="text-rose-500 text-sm font-bold px-2">×</button>
-                            </td>
-                        </tr>`;
+                    const row = `<tr class="hover:bg-slate-800/50 transition-colors">
+                        <td class="py-3 px-5 font-bold font-mono text-white text-sm">${t.symbol}</td>
+                        <td class="py-3 px-5 text-center font-black font-mono text-sky-400 text-base">${t.qty}</td>
+                        <td class="py-3 px-5">${typeBadge} <span class="text-[9px] ml-1 text-slate-400">${t.tag}</span></td>
+                        <td class="py-3 px-5 font-mono text-xs text-sky-300">₹${t.entry.toFixed(2)}${slBadge}</td>
+                        <td class="py-3 px-5 font-mono text-xs text-slate-300">₹${invested.toLocaleString('en-IN', {maximumFractionDigits:0})}</td>
+                        <td class="py-3 px-5 text-center"><input type="number" step="any" value="${liveCMP}" onchange="updateLiveCMP(${t.id}, this.value)" class="w-20 bg-slate-900 border border-slate-700 rounded p-1 text-xs font-mono text-center text-white outline-none focus:border-sky-500"></td>
+                        <td class="py-3 px-5 font-bold font-mono text-right ${pnlColor} text-sm">${sign}₹${unrealized.toFixed(2)}</td>
+                        <td class="py-3 px-5 text-center flex justify-center items-center gap-1.5">
+                            <button onclick="loadMainChart('${t.symbol}')" title="Chart" class="bg-sky-500/20 text-sky-300 border border-sky-500/30 px-2 py-1.5 rounded text-[10px] font-bold uppercase transition hover:bg-sky-500/40">📉</button>
+                            <button onclick="openEditModal(${t.id})" title="Edit Trade" class="bg-blue-600/20 text-blue-400 border border-blue-500/30 px-2 py-1.5 rounded text-[10px] font-bold uppercase transition hover:bg-blue-600/40">✏️</button>
+                            <button onclick="openCloseModal(${t.id}, '${t.symbol}')" title="Close Trade" class="bg-purple-600/20 text-purple-400 border border-purple-500/30 px-2 py-1.5 rounded text-[10px] font-bold uppercase transition hover:bg-purple-600/40">Exit</button>
+                            <button onclick="deleteTrade(${t.id})" title="Delete" class="text-rose-500 hover:bg-rose-500/20 text-sm font-bold px-2 rounded transition">×</button>
+                        </td></tr>`;
                     openBody.insertAdjacentHTML('beforeend', row);
                 });
             }
@@ -569,15 +586,13 @@
             closedTrades.forEach(t => {
                 totalRealizedPnL += t.pnl; closedCount++; if(t.pnl > 0) totalWins++;
                 const pnlColor = t.pnl >= 0 ? 'text-emerald-400' : 'text-rose-400';
-                const row = `
-                    <tr class="hover:bg-slate-800/20 transition-colors opacity-80">
-                        <td class="py-3 px-5"><div class="font-bold text-white font-mono text-sm">${t.symbol}</div><div class="text-[9px] text-slate-500">${t.date}</div></td>
-                        <td class="py-3 px-5 text-center font-black font-mono text-sky-400 text-base">${t.qty}</td>
-                        <td class="py-3 px-5"><span class="${t.type==='LONG'?'text-emerald-400':'text-rose-400'} text-[9px] font-bold">${t.type}</span></td>
-                        <td class="py-3 px-5 font-mono text-xs"><span class="text-slate-400">₹${t.entry.toFixed(2)}</span> → <span class="text-slate-400">₹${t.exit.toFixed(2)}</span></td>
-                        <td class="py-3 px-5 font-bold font-mono text-right ${pnlColor} text-sm">${t.pnl>=0?'+':''}₹${t.pnl.toFixed(2)}</td>
-                        <td class="py-3 px-5 text-center"><button onclick="deleteTrade(${t.id})" class="text-slate-600 hover:text-rose-500 text-lg font-bold px-2">×</button></td>
-                    </tr>`;
+                const row = `<tr class="hover:bg-slate-800/20 transition-colors opacity-80">
+                    <td class="py-3 px-5"><div class="font-bold text-white font-mono text-sm">${t.symbol}</div><div class="text-[9px] text-slate-500">${t.date}</div></td>
+                    <td class="py-3 px-5 text-center font-black font-mono text-sky-400 text-base">${t.qty}</td>
+                    <td class="py-3 px-5"><span class="${t.type==='LONG'?'text-emerald-400':'text-rose-400'} text-[9px] font-bold">${t.type}</span></td>
+                    <td class="py-3 px-5 font-mono text-xs"><span class="text-slate-400">₹${t.entry.toFixed(2)}</span> → <span class="text-slate-400">₹${t.exit.toFixed(2)}</span></td>
+                    <td class="py-3 px-5 font-bold font-mono text-right ${pnlColor} text-sm">${t.pnl>=0?'+':''}₹${t.pnl.toFixed(2)}</td>
+                    <td class="py-3 px-5 text-center"><button onclick="deleteTrade(${t.id})" class="text-slate-600 hover:text-rose-500 text-lg font-bold px-2 rounded hover:bg-rose-500/10 transition">×</button></td></tr>`;
                 closedBody.insertAdjacentHTML('beforeend', row);
             });
 
