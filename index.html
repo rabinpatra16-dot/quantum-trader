@@ -3,13 +3,16 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>QuantumTrader | Pro Tracker V7.11</title>
+    <title>QuantumTrader | Cloud Sync V8.0</title>
     
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#020617">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/2933/2933116.png">
+
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
 
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -79,7 +82,7 @@
     <div class="max-w-[1600px] mx-auto">
         <header class="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 border-b border-slate-800 pb-6 gap-4">
             <div>
-                <h1 class="text-3xl font-black tracking-tight">QUANTUM<span class="text-transparent bg-clip-text bg-gradient-to-r from-sky-400 to-indigo-500">TRADER</span> <span class="text-[10px] bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-2 py-0.5 rounded ml-2 align-middle font-bold">V7.11 PUSH</span></h1>
+                <h1 class="text-3xl font-black tracking-tight">QUANTUM<span class="text-transparent bg-clip-text bg-gradient-to-r from-sky-400 to-indigo-500">TRADER</span> <span class="text-[10px] bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-2 py-0.5 rounded ml-2 align-middle font-bold">V8.0 CLOUD</span></h1>
                 <p class="text-xs text-slate-400 mt-2 uppercase tracking-widest font-mono">Real-Time Portfolio & Chart Engine</p>
             </div>
             
@@ -281,6 +284,36 @@
             .catch(err => console.error("Service Worker Error:", err));
         }
 
+        // =========================================================================
+        // !!! YOUR FIREBASE REALTIME DATABASE URL !!!
+        // =========================================================================
+        const FIREBASE_DB_URL = "https://quantum-tracker-6fe30-default-rtdb.firebaseio.com";
+
+        // ================= FIREBASE INITIALIZATION =================
+        firebase.initializeApp({ databaseURL: FIREBASE_DB_URL });
+        const fbDatabase = firebase.database();
+
+        // Data & State
+        let trades = [];
+        let autoSyncTimer = null;
+        let isAutoSyncing = false;
+        let currentView = 'main';
+
+        const alertSound = new Audio('https://actions.google.com/sounds/v1/alarms/beep_short.ogg');
+
+        // ================= REAL-TIME CLOUD SYNC (FIREBASE) =================
+        fbDatabase.ref('trades').on('value', (snapshot) => {
+            const data = snapshot.val();
+            trades = data || [];
+            renderUI();
+            if(currentView === 'grid') renderMultiCharts();
+        });
+
+        // ================= SAVE DATA TO CLOUD =================
+        function saveData() { 
+            fbDatabase.ref('trades').set(trades); 
+        }
+
         // ================= NOTIFICATION PERMISSION =================
         function requestNotificationPermission() {
             if (!("Notification" in window)) {
@@ -296,14 +329,7 @@
             }
         }
 
-        // ================= MAIN JAVASCRIPT LOGIC =================
-        let trades = JSON.parse(localStorage.getItem('v6TVTrackerDB')) || [];
-        let autoSyncTimer = null;
-        let isAutoSyncing = false;
-        let currentView = 'main';
-
-        const alertSound = new Audio('https://actions.google.com/sounds/v1/alarms/beep_short.ogg');
-
+        // ================= TRADINGVIEW & UI LOGIC =================
         function formatTVSymbol(symbol) {
             if (symbol === "NIFTY") return "BSE:NIFTY50";
             if (symbol === "BANKNIFTY") return "BSE:BANKNIFTY";
@@ -335,8 +361,6 @@
             });
         }
 
-        window.onload = () => { loadMainChart("NIFTY"); };
-
         function toggleView(view) {
             currentView = view;
             const btnMain = document.getElementById('btnMain');
@@ -347,23 +371,18 @@
             if(view === 'grid') {
                 viewMain.classList.add('hidden');
                 viewGrid.classList.remove('hidden');
-                
                 btnGrid.classList.replace('text-slate-400', 'text-white');
                 btnGrid.classList.replace('border-transparent', 'border-slate-700');
                 btnGrid.classList.add('bg-slate-800', 'shadow-inner');
-                
                 btnMain.classList.remove('bg-slate-800', 'shadow-inner', 'text-white', 'border-slate-700');
                 btnMain.classList.add('text-slate-400', 'border-transparent');
-                
                 renderMultiCharts();
             } else {
                 viewGrid.classList.add('hidden');
                 viewMain.classList.remove('hidden');
-                
                 btnMain.classList.replace('text-slate-400', 'text-white');
                 btnMain.classList.replace('border-transparent', 'border-slate-700');
                 btnMain.classList.add('bg-slate-800', 'shadow-inner');
-                
                 btnGrid.classList.remove('bg-slate-800', 'shadow-inner', 'text-white', 'border-slate-700');
                 btnGrid.classList.add('text-slate-400', 'border-transparent');
             }
@@ -372,29 +391,20 @@
         function renderMultiCharts() {
             const container = document.getElementById('multiChartContainer');
             container.innerHTML = ''; 
-            
             const openTrades = trades.filter(t => t.status === 'OPEN');
-            
             if(openTrades.length === 0) {
-                container.innerHTML = `
-                    <div class="col-span-full glass-card p-12 text-center text-slate-500 font-mono">
-                        No active positions to display in grid. Place an order to see it here.
-                    </div>`;
+                container.innerHTML = `<div class="col-span-full glass-card p-12 text-center text-slate-500 font-mono">No active positions to display in grid.</div>`;
                 return;
             }
-
             openTrades.forEach(t => {
                 const chartId = 'tv_mini_' + t.id;
-                
                 const liveCMP = t.liveCMP || t.entry;
                 const invested = t.qty * t.entry;
                 const unrealized = t.type === 'LONG' ? (liveCMP - t.entry) * t.qty : (t.entry - liveCMP) * t.qty;
                 const pnlColor = unrealized >= 0 ? 'text-emerald-400' : 'text-rose-400';
                 const sign = unrealized >= 0 ? '+' : '';
-                
                 const card = document.createElement('div');
                 card.className = 'glass-card flex flex-col h-[350px] overflow-hidden border-t-2 border-t-sky-500';
-                
                 card.innerHTML = `
                     <div class="px-3 py-2 bg-slate-900/50 border-b border-slate-800 flex justify-between items-center">
                         <span class="font-bold text-white font-mono text-sm">${t.symbol}</span>
@@ -404,172 +414,82 @@
                         <span class="text-slate-300 font-bold text-[13px]">Used: ₹${invested.toLocaleString('en-IN', {maximumFractionDigits:0})}</span>
                         <span id="grid-pnl-${t.id}" class="font-black ${pnlColor} text-[15px]">P&L: ${sign}₹${unrealized.toFixed(2)}</span>
                     </div>
-                    <div id="${chartId}" class="w-full flex-1"></div>
-                `;
-                
+                    <div id="${chartId}" class="w-full flex-1"></div>`;
                 container.appendChild(card);
-
                 new TradingView.widget({
-                    "autosize": true,
-                    "symbol": formatTVSymbol(t.symbol),
-                    "interval": "D",
-                    "timezone": "Asia/Kolkata",
-                    "theme": "dark",
-                    "style": "1", 
-                    "locale": "in",
-                    "enable_publishing": false,
-                    "backgroundColor": "#0f172a",
-                    "hide_top_toolbar": true,    
-                    "hide_side_toolbar": true,   
-                    "hide_legend": true,         
-                    "save_image": false,
-                    "container_id": chartId
+                    "autosize": true, "symbol": formatTVSymbol(t.symbol), "interval": "D", "timezone": "Asia/Kolkata", "theme": "dark", "style": "1", "locale": "in", "enable_publishing": false, "backgroundColor": "#0f172a", "hide_top_toolbar": true, "hide_side_toolbar": true, "hide_legend": true, "save_image": false, "container_id": chartId
                 });
             });
         }
 
-        const popularStocks = [
-            "NIFTY", "BANKNIFTY", "FINNIFTY", "MIDCPNIFTY", "SENSEX",
-            "RELIANCE", "TCS", "HDFCBANK", "ICICIBANK", "INFY", "SBIN", 
-            "BHARTIARTL", "ITC", "KOTAKBANK", "LT", "AXISBANK", "BAJFINANCE", 
-            "ASIANPAINT", "MARUTI", "SUNPHARMA", "TITAN", "TATAMOTORS", 
-            "TATASTEEL", "ADANIENT", "ZOMATO", "JIOFIN", "SUZLON", "IRFC", 
-            "RVNL", "HAL", "BHEL", "TRENT", "BTCUSDT", "ETHUSDT"
-        ];
-        const datalist = document.getElementById('tickers');
-        popularStocks.forEach(stock => {
-            let option = document.createElement('option');
-            option.value = stock;
-            datalist.appendChild(option);
-        });
-
-        // ================= PUSH NOTIFICATION & SL CHECK =================
         function checkStopLoss(trade) {
             if (trade.sl && !trade.slHit) {
-                if ((trade.type === 'LONG' && trade.liveCMP <= trade.sl) || 
-                    (trade.type === 'SHORT' && trade.liveCMP >= trade.sl)) {
-                    
+                if ((trade.type === 'LONG' && trade.liveCMP <= trade.sl) || (trade.type === 'SHORT' && trade.liveCMP >= trade.sl)) {
                     trade.slHit = true;
                     saveData();
-                    
                     const alertTitle = `🚨 SL HIT: ${trade.symbol}`;
                     const alertBody = `Type: ${trade.type} | SL: ₹${trade.sl.toFixed(2)} | Current: ₹${trade.liveCMP}`;
-
-                    // Play Sound
                     alertSound.play().catch(e => console.log("Audio play blocked"));
-                    
-                    // Native Push Notification
                     if ("Notification" in window && Notification.permission === "granted") {
-                        navigator.serviceWorker.ready.then(registration => {
-                            registration.showNotification(alertTitle, {
-                                body: alertBody,
-                                icon: 'https://cdn-icons-png.flaticon.com/512/2933/2933116.png',
-                                vibrate: [200, 100, 200, 100, 200],
-                                requireInteraction: true,
-                                tag: 'sl-alert'
-                            });
+                        navigator.serviceWorker.ready.then(reg => {
+                            reg.showNotification(alertTitle, { body: alertBody, icon: 'https://cdn-icons-png.flaticon.com/512/2933/2933116.png', vibrate: [200, 100, 200], requireInteraction: true });
                         });
-                    } else {
-                        // Fallback Browser Alert if permission not granted
-                        alert(`${alertTitle}\n\n${alertBody}`);
-                    }
+                    } else { alert(`${alertTitle}\n\n${alertBody}`); }
                 }
             }
         }
 
         document.getElementById('tradeForm').addEventListener('submit', function(e) {
             e.preventDefault();
-            
             const symbol = document.getElementById('symbol').value.toUpperCase().trim();
             const tag = document.getElementById('tag').value;
             const type = document.getElementById('type').value;
             const qty = parseFloat(document.getElementById('qty').value);
             const entry = parseFloat(document.getElementById('entry').value);
-            
             const slPctVal = document.getElementById('sl_pct').value;
             let sl = null;
             if(slPctVal !== "" && !isNaN(slPctVal)) {
                 const pct = parseFloat(slPctVal);
-                if(type === 'LONG') {
-                    sl = entry - (entry * pct / 100);
-                } else {
-                    sl = entry + (entry * pct / 100);
-                }
+                sl = type === 'LONG' ? entry - (entry * pct / 100) : entry + (entry * pct / 100);
             }
-
             const exitVal = document.getElementById('exit').value;
             const isClosed = exitVal !== "" && !isNaN(exitVal);
             const exit = isClosed ? parseFloat(exitVal) : null;
-            
             const now = new Date();
             const dateStr = now.toLocaleDateString('en-GB', {day:'2-digit', month:'short'}) + ' ' + now.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+            let pnl = isClosed ? (type === 'LONG' ? (exit - entry) * qty : (entry - exit) * qty) : 0;
 
-            let pnl = 0;
-            if(isClosed) {
-                pnl = type === 'LONG' ? (exit - entry) * qty : (entry - exit) * qty;
-            }
-
-            const trade = { 
-                id: Date.now(), date: dateStr, symbol, tag, type, qty, entry, sl, exit, pnl, 
-                status: isClosed ? 'CLOSED' : 'OPEN', liveCMP: entry, slHit: false
-            };
-            
+            const trade = { id: Date.now(), date: dateStr, symbol, tag, type, qty, entry, sl, exit, pnl, status: isClosed ? 'CLOSED' : 'OPEN', liveCMP: entry, slHit: false };
             trades.unshift(trade); 
             saveData();
-            renderUI();
             loadMainChart(symbol);
-            
-            if(currentView === 'grid') renderMultiCharts();
-
             this.reset();
             document.getElementById('symbol').focus();
         });
 
-        function saveData() { localStorage.setItem('v6TVTrackerDB', JSON.stringify(trades)); }
-        
-        function clearHistory() { 
-            if(confirm("Are you sure you want to completely wipe out all data?")) { 
-                trades = []; saveData(); renderUI(); if(currentView === 'grid') renderMultiCharts();
-            } 
-        }
-
-        function deleteTrade(id) {
-            if(confirm("Are you sure you want to delete this specific trade?")) {
-                trades = trades.filter(t => t.id !== id);
-                saveData(); renderUI(); if(currentView === 'grid') renderMultiCharts();
-            }
-        }
+        function clearHistory() { if(confirm("Wipe entire database?")) { trades = []; saveData(); } }
+        function deleteTrade(id) { if(confirm("Delete this trade?")) { trades = trades.filter(t => t.id !== id); saveData(); } }
 
         function updateLiveCMP(id, newCMP) {
-            const val = parseFloat(newCMP);
-            if(isNaN(val)) return;
-            const tradeIndex = trades.findIndex(t => t.id === id);
-            if(tradeIndex > -1) {
-                trades[tradeIndex].liveCMP = val;
-                checkStopLoss(trades[tradeIndex]);
-                saveData(); renderUI();
-            }
+            const val = parseFloat(newCMP); if(isNaN(val)) return;
+            const idx = trades.findIndex(t => t.id === id);
+            if(idx > -1) { trades[idx].liveCMP = val; checkStopLoss(trades[idx]); saveData(); }
         }
 
         async function fetchLiveCMPFromPython() {
-            const openTrades = trades.filter(t => t.status === 'OPEN');
-            if(openTrades.length === 0) return;
-
+            const openTrades = trades.filter(t => t.status === 'OPEN'); if(openTrades.length === 0) return;
             for(let t of openTrades) {
                 try {
-                    if(t.slHit === undefined) t.slHit = false; 
+                    if(t.slHit === undefined) t.slHit = false;
                     let sym = t.symbol.includes('.') ? t.symbol : t.symbol + '.NS';
                     
                     const res = await fetch(`https://quantum-trader-rlme.onrender.com/api/price/${sym}`);
                     const data = await res.json();
                     
-                    if(data.status === 'success') { 
-                        t.liveCMP = data.price; 
-                        checkStopLoss(t); 
-                    }
-                } catch(e) { console.log(`Failed to fetch ${t.symbol}`); }
+                    if(data.status === 'success') { t.liveCMP = data.price; checkStopLoss(t); }
+                } catch(e) { console.log(`Fetch error ${t.symbol}`); }
             }
-            saveData(); renderUI();
+            saveData();
         }
 
         function toggleAutoSync() {
@@ -577,12 +497,11 @@
             const btn = document.getElementById('autoSyncBtn');
             if(isAutoSyncing) {
                 btn.innerHTML = "Auto-Sync: ON 🟢";
-                btn.className = "text-[10px] bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 px-3 py-1.5 rounded uppercase font-bold tracking-wider transition border border-emerald-500/40 sync-active-glow";
-                fetchLiveCMPFromPython();
-                autoSyncTimer = setInterval(fetchLiveCMPFromPython, 15000);
+                btn.className = "text-[10px] bg-emerald-500/20 text-emerald-300 px-3 py-1.5 rounded uppercase font-bold border border-emerald-500/40 sync-active-glow";
+                fetchLiveCMPFromPython(); autoSyncTimer = setInterval(fetchLiveCMPFromPython, 15000);
             } else {
                 btn.innerHTML = "Auto-Sync: OFF 🔴";
-                btn.className = "text-[10px] bg-slate-800 hover:bg-slate-700 text-slate-400 px-3 py-1.5 rounded uppercase font-bold tracking-wider transition border border-slate-700";
+                btn.className = "text-[10px] bg-slate-800 text-slate-400 px-3 py-1.5 rounded uppercase font-bold border border-slate-700";
                 clearInterval(autoSyncTimer);
             }
         }
@@ -597,16 +516,12 @@
         function submitCloseTrade() {
             const id = parseInt(document.getElementById('modalTradeId').value);
             const exit = parseFloat(document.getElementById('modalExitPrice').value);
-            if(isNaN(exit)) return alert("Enter valid exit price");
-
+            if(isNaN(exit)) return alert("Invalid exit price");
             const trade = trades.find(t => t.id === id);
             if(trade) {
                 trade.exit = exit; trade.status = 'CLOSED';
                 trade.pnl = trade.type === 'LONG' ? (exit - trade.entry) * trade.qty : (trade.entry - exit) * trade.qty;
-                saveData(); renderUI();
-                if(currentView === 'grid') renderMultiCharts();
-                closeModalFunc();
-                document.getElementById('modalExitPrice').value = '';
+                saveData(); closeModalFunc(); document.getElementById('modalExitPrice').value = '';
             }
         }
 
@@ -614,66 +529,39 @@
             const openBody = document.getElementById('openPositionsBody');
             const closedBody = document.getElementById('closedTradeBody');
             openBody.innerHTML = ''; closedBody.innerHTML = '';
-
-            let totalRealizedPnL = 0, totalWins = 0, closedCount = 0;
-            let totalInvestedAmt = 0, totalUnrealizedPnL = 0;
-
+            let totalRealizedPnL = 0, totalWins = 0, closedCount = 0, totalInvestedAmt = 0, totalUnrealizedPnL = 0;
             const openTrades = trades.filter(t => t.status === 'OPEN');
             const closedTrades = trades.filter(t => t.status === 'CLOSED');
 
-            if(openTrades.length === 0) {
-                document.getElementById('noOpenState').style.display = 'block';
-            } else {
+            if(openTrades.length === 0) { document.getElementById('noOpenState').style.display = 'block'; } 
+            else {
                 document.getElementById('noOpenState').style.display = 'none';
-                
                 openTrades.forEach(t => {
-                    const invested = t.qty * t.entry;
-                    totalInvestedAmt += invested;
-
+                    const invested = t.qty * t.entry; totalInvestedAmt += invested;
                     const liveCMP = t.liveCMP || t.entry;
                     let unrealized = t.type === 'LONG' ? (liveCMP - t.entry) * t.qty : (t.entry - liveCMP) * t.qty;
                     totalUnrealizedPnL += unrealized;
-
                     const pnlColor = unrealized >= 0 ? 'text-emerald-400' : 'text-rose-400';
                     const sign = unrealized >= 0 ? '+' : '';
-                    
-                    const gridPnlEl = document.getElementById(`grid-pnl-${t.id}`);
-                    if (gridPnlEl) {
-                        gridPnlEl.className = `font-black ${pnlColor} text-[15px]`;
-                        gridPnlEl.innerText = `P&L: ${sign}₹${unrealized.toFixed(2)}`;
-                    }
-                    
-                    const typeBadge = t.type === 'LONG' 
-                        ? `<span class="bg-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded text-[10px] font-bold border border-emerald-500/30">L</span>` 
-                        : `<span class="bg-rose-500/20 text-rose-400 px-2 py-0.5 rounded text-[10px] font-bold border border-rose-500/30">S</span>`;
-                        
+                    const typeBadge = t.type === 'LONG' ? `<span class="bg-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded text-[10px] font-bold border border-emerald-500/30">L</span>` : `<span class="bg-rose-500/20 text-rose-400 px-2 py-0.5 rounded text-[10px] font-bold border border-rose-500/30">S</span>`;
                     let slDisplayClass = t.slHit ? "text-rose-100 bg-rose-600 border-rose-500" : "text-rose-400 bg-rose-500/10 border-rose-500/20";
-                    let slText = t.slHit ? "SL HIT!" : `SL: ₹${t.sl ? t.sl.toFixed(2) : ''}`;
-                    
-                    const slBadge = t.sl 
-                        ? `<br><span class="inline-block mt-1 text-[10px] border px-1.5 py-0.5 rounded font-bold ${slDisplayClass}">${slText}</span>` 
-                        : '';
+                    const slBadge = t.sl ? `<br><span class="inline-block mt-1 text-[10px] border px-1.5 py-0.5 rounded font-bold ${slDisplayClass}">${t.slHit ? "SL HIT!" : 'SL: ₹'+t.sl.toFixed(2)}</span>` : '';
 
                     const row = `
                         <tr class="hover:bg-slate-800/50 transition-colors">
                             <td class="py-3 px-5 font-bold font-mono text-white text-sm">${t.symbol}</td>
                             <td class="py-3 px-5 text-center font-black font-mono text-sky-400 text-base">${t.qty}</td>
                             <td class="py-3 px-5">${typeBadge} <span class="text-[9px] ml-1 text-slate-400">${t.tag}</span></td>
-                            <td class="py-3 px-5 font-mono text-xs text-sky-300">
-                                ₹${t.entry.toFixed(2)}${slBadge}
-                            </td>
+                            <td class="py-3 px-5 font-mono text-xs text-sky-300">₹${t.entry.toFixed(2)}${slBadge}</td>
                             <td class="py-3 px-5 font-mono text-xs text-slate-300">₹${invested.toLocaleString('en-IN', {maximumFractionDigits:0})}</td>
-                            <td class="py-3 px-5 text-center">
-                                <input type="number" step="any" value="${liveCMP}" onchange="updateLiveCMP(${t.id}, this.value)" class="w-20 bg-slate-900 border border-slate-700 rounded p-1 text-xs font-mono text-center text-white outline-none focus:border-sky-500">
-                            </td>
+                            <td class="py-3 px-5 text-center"><input type="number" step="any" value="${liveCMP}" onchange="updateLiveCMP(${t.id}, this.value)" class="w-20 bg-slate-900 border border-slate-700 rounded p-1 text-xs font-mono text-center text-white outline-none focus:border-sky-500"></td>
                             <td class="py-3 px-5 font-bold font-mono text-right ${pnlColor} text-sm">${sign}₹${unrealized.toFixed(2)}</td>
                             <td class="py-3 px-5 text-center flex justify-center items-center gap-1.5">
-                                <button onclick="loadMainChart('${t.symbol}')" title="View Main Chart" class="bg-sky-500/20 hover:bg-sky-500/40 text-sky-300 border border-sky-500/30 px-2.5 py-1 rounded text-[10px] font-bold uppercase transition">📉 Chart</button>
-                                <button onclick="openCloseModal(${t.id}, '${t.symbol}')" title="Close Trade" class="bg-purple-600/20 hover:bg-purple-600/40 text-purple-400 border border-purple-500/30 px-2.5 py-1 rounded text-[10px] font-bold uppercase transition">Exit</button>
-                                <button onclick="deleteTrade(${t.id})" title="Delete Log" class="text-rose-500 hover:text-white hover:bg-rose-500/50 px-2 py-1 rounded text-sm font-bold transition">×</button>
+                                <button onclick="loadMainChart('${t.symbol}')" class="bg-sky-500/20 text-sky-300 border border-sky-500/30 px-2.5 py-1 rounded text-[10px] font-bold uppercase">📉 Chart</button>
+                                <button onclick="openCloseModal(${t.id}, '${t.symbol}')" class="bg-purple-600/20 text-purple-400 border border-purple-500/30 px-2.5 py-1 rounded text-[10px] font-bold uppercase">Exit</button>
+                                <button onclick="deleteTrade(${t.id})" class="text-rose-500 text-sm font-bold px-2">×</button>
                             </td>
-                        </tr>
-                    `;
+                        </tr>`;
                     openBody.insertAdjacentHTML('beforeend', row);
                 });
             }
@@ -681,41 +569,25 @@
             closedTrades.forEach(t => {
                 totalRealizedPnL += t.pnl; closedCount++; if(t.pnl > 0) totalWins++;
                 const pnlColor = t.pnl >= 0 ? 'text-emerald-400' : 'text-rose-400';
-                const sign = t.pnl >= 0 ? '+' : '';
-                
-                const typeBadge = t.type === 'LONG' 
-                    ? `<span class="bg-emerald-500/10 text-emerald-400 px-1.5 py-0.5 rounded text-[9px] font-bold">LONG</span>` 
-                    : `<span class="bg-rose-500/10 text-rose-400 px-1.5 py-0.5 rounded text-[9px] font-bold">SHORT</span>`;
-
                 const row = `
                     <tr class="hover:bg-slate-800/20 transition-colors opacity-80">
-                        <td class="py-3 px-5">
-                            <div class="font-bold text-white font-mono text-sm">${t.symbol}</div>
-                            <div class="text-[9px] text-slate-500">${t.date}</div>
-                        </td>
+                        <td class="py-3 px-5"><div class="font-bold text-white font-mono text-sm">${t.symbol}</div><div class="text-[9px] text-slate-500">${t.date}</div></td>
                         <td class="py-3 px-5 text-center font-black font-mono text-sky-400 text-base">${t.qty}</td>
-                        <td class="py-3 px-5 whitespace-nowrap">${typeBadge}</td>
-                        <td class="py-3 px-5 font-mono text-xs">
-                            <span class="text-slate-400">₹${t.entry.toFixed(2)}</span> <span class="text-slate-600">→</span> <span class="text-slate-400">₹${t.exit.toFixed(2)}</span>
-                        </td>
-                        <td class="py-3 px-5 font-bold font-mono text-right ${pnlColor} text-sm">${sign}₹${t.pnl.toFixed(2)}</td>
-                        <td class="py-3 px-5 text-center">
-                            <button onclick="deleteTrade(${t.id})" class="text-slate-600 hover:text-rose-500 hover:bg-rose-500/10 px-2 py-1 rounded transition-colors text-lg font-bold">×</button>
-                        </td>
-                    </tr>
-                `;
+                        <td class="py-3 px-5"><span class="${t.type==='LONG'?'text-emerald-400':'text-rose-400'} text-[9px] font-bold">${t.type}</span></td>
+                        <td class="py-3 px-5 font-mono text-xs"><span class="text-slate-400">₹${t.entry.toFixed(2)}</span> → <span class="text-slate-400">₹${t.exit.toFixed(2)}</span></td>
+                        <td class="py-3 px-5 font-bold font-mono text-right ${pnlColor} text-sm">${t.pnl>=0?'+':''}₹${t.pnl.toFixed(2)}</td>
+                        <td class="py-3 px-5 text-center"><button onclick="deleteTrade(${t.id})" class="text-slate-600 hover:text-rose-500 text-lg font-bold px-2">×</button></td>
+                    </tr>`;
                 closedBody.insertAdjacentHTML('beforeend', row);
             });
 
             document.getElementById('netPnL').innerText = (totalRealizedPnL >= 0 ? '+' : '') + '₹' + totalRealizedPnL.toLocaleString('en-IN', {maximumFractionDigits:2});
             document.getElementById('netPnL').className = `text-3xl font-black mt-2 font-mono tracking-tight ${totalRealizedPnL >= 0 ? 'text-emerald-400' : 'text-rose-400'}`;
-            const winRate = closedCount > 0 ? ((totalWins / closedCount) * 100).toFixed(1) : 0;
-            document.getElementById('winRateTxt').innerText = winRate + '%';
+            document.getElementById('winRateTxt').innerText = closedCount > 0 ? ((totalWins / closedCount) * 100).toFixed(1) + '%' : '0%';
             document.getElementById('totalInvested').innerText = '₹' + totalInvestedAmt.toLocaleString('en-IN', {maximumFractionDigits:2});
             document.getElementById('unrealizedPnL').innerText = (totalUnrealizedPnL >= 0 ? '+' : '') + '₹' + totalUnrealizedPnL.toLocaleString('en-IN', {maximumFractionDigits:2});
             document.getElementById('unrealizedPnL').className = `text-3xl font-black mt-2 font-mono tracking-tight ${totalUnrealizedPnL >= 0 ? 'text-emerald-400' : 'text-rose-400'}`;
         }
-        renderUI();
     </script>
 </body>
 </html>
