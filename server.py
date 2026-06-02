@@ -1,57 +1,71 @@
 from flask import Flask, jsonify
 from flask_cors import CORS
 import yfinance as yf
-import os  # অনলাইনে চালানোর জন্য এটি যোগ করা হয়েছে
+import datetime
 
 app = Flask(__name__)
-CORS(app)
+CORS(app) 
 
-symbol_map = {
-    "NIFTY": "^NSEI",
-    "BANKNIFTY": "^NSEBANK",
-    "FINNIFTY": "NIFTY_FIN_SERVICE.NS",
-    "SENSEX": "^BSESN"
-}
+# সিম্বল ঠিক করার ফাংশন (যাতে NIFTY লিখলে Yahoo Finance বুঝতে পারে)
+def get_yf_symbol(symbol):
+    symbol = symbol.upper()
+    if symbol == "NIFTY": return "^NSEI"
+    if symbol == "BANKNIFTY": return "^NSEBANK"
+    if symbol == "SENSEX": return "^BSESN"
+    if symbol == "FINNIFTY": return "^CNXFIN"
+    if "USDT" in symbol or "BTC" in symbol: return symbol + "-USD"
+    if not symbol.endswith(".NS") and not symbol.endswith(".BO"): return symbol + ".NS"
+    return symbol
 
+@app.route('/')
+def home():
+    return "QuantumTrader Live Server is Running!"
+
+# লাইভ প্রাইস আনার রুট
 @app.route('/api/price/<symbol>')
-def get_price(symbol):
+def get_live_price(symbol):
     try:
-        original_symbol = symbol.replace('.NS', '').strip().upper()
-        
-        if original_symbol in symbol_map:
-            fetch_symbol = symbol_map[original_symbol]
-        else:
-            fetch_symbol = original_symbol + '.NS'
-            
-        print(f"⏳ Fetching price for: {fetch_symbol} ...", end=" ")
-        
-        ticker = yf.Ticker(fetch_symbol)
-        
+        ticker_sym = get_yf_symbol(symbol)
+        ticker = yf.Ticker(ticker_sym)
         try:
-            cmp = ticker.fast_info['last_price']
-            print(f"✅ Success: ₹{round(cmp, 2)}")
-            return jsonify({"symbol": symbol, "price": round(cmp, 2), "status": "success"})
+            price = ticker.fast_info['last_price']
         except:
-            pass
+            data = ticker.history(period="1d")
+            price = data['Close'].iloc[-1]
             
-        data = ticker.history(period="1d")
-        if not data.empty:
-            cmp = data['Close'].iloc[-1]
-            print(f"✅ Success: ₹{round(cmp, 2)}")
-            return jsonify({"symbol": symbol, "price": round(cmp, 2), "status": "success"})
-        else:
-            print("❌ Failed: Data missing on Yahoo Finance!")
-            return jsonify({
-                "status": "partial", 
-                "message": "Yahoo API Issue. Please enter CMP manually.",
-                "symbol": symbol
+        return jsonify({"status": "success", "symbol": symbol, "price": round(price, 2)})
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e)}), 400
+
+# চার্ট তৈরি করার জন্য হিস্টোরিক্যাল ডেটা আনার রুট (নতুন)
+@app.route('/api/history/<symbol>')
+def get_history(symbol):
+    try:
+        ticker_sym = get_yf_symbol(symbol)
+        ticker = yf.Ticker(ticker_sym)
+        
+        # চার্টের জন্য গত ৫ দিনের ৫-মিনিটের ক্যান্ডেলস্টিক ডেটা
+        df = ticker.history(period="5d", interval="5m")
+        
+        data = []
+        for index, row in df.iterrows():
+            # Lightweight charts-এর জন্য UNIX Timestamp দরকার
+            timestamp = int(index.timestamp())
+            
+            data.append({
+                "time": timestamp,
+                "open": round(row['Open'], 2),
+                "high": round(row['High'], 2),
+                "low": round(row['Low'], 2),
+                "close": round(row['Close'], 2)
             })
             
+        return jsonify({"status": "success", "data": data})
     except Exception as e:
-        print(f"❌ Error: {str(e)}")
-        return jsonify({"status": "error", "message": str(e)}), 500
+        return jsonify({"status": "error", "message": str(e)}), 400
 
-# অনলাইনে চালানোর জন্য এই নিচের অংশটুকু আপডেট করা হয়েছে
 if __name__ == '__main__':
-    port = int(os.environ.get('PORT', 5000))
-    app.run(host='0.0.0.0', port=port)
+    print("=======================================")
+    print("QuantumTrader LIVE Server Running!")
+    print("=======================================")
+    app.run(host='0.0.0.0', port=5000, debug=True)
