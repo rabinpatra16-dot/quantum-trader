@@ -3,10 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>QuantumTrader | V8.5 PRO</title>
+    <title>QuantumTrader | V8.5 PRO UI</title>
     
     <link rel="manifest" href="manifest.json">
-    <meta name="theme-color" content="#020617">
+    <meta name="theme-color" content="#060b19">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/2933/2933116.png">
@@ -16,146 +16,277 @@
 
     <script src="https://cdn.tailwindcss.com"></script>
     <script type="text/javascript" src="https://s3.tradingview.com/tv.js"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;700;800&display=swap" rel="stylesheet">
+    
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700;800&display=swap" rel="stylesheet">
     
     <style>
+        :root {
+            --bg-main: #060b19;
+            --glass-bg: rgba(13, 19, 38, 0.65);
+            --glass-border: rgba(255, 255, 255, 0.08);
+            --accent-glow: rgba(56, 189, 248, 0.15);
+        }
+
         body { 
-            background-color: #020617; 
+            background-color: var(--bg-main); 
             color: #f8fafc; 
             font-family: 'Inter', sans-serif;
             background-image: 
-                radial-gradient(circle at 15% 50%, rgba(14, 165, 233, 0.04), transparent 40%),
-                radial-gradient(circle at 85% 30%, rgba(168, 85, 247, 0.04), transparent 40%);
+                radial-gradient(circle at 10% 20%, rgba(14, 165, 233, 0.06), transparent 50%),
+                radial-gradient(circle at 90% 80%, rgba(168, 85, 247, 0.06), transparent 50%),
+                linear-gradient(rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+            background-size: 100% 100%, 100% 100%, 30px 30px, 30px 30px;
         }
+
         .font-mono { font-family: 'JetBrains Mono', monospace; }
         
         .glass-card { 
-            background: rgba(15, 23, 42, 0.85); 
-            backdrop-filter: blur(24px); 
-            border: 1px solid rgba(255, 255, 255, 0.05); 
-            box-shadow: 0 20px 50px -12px rgba(0, 0, 0, 0.5);
-            border-radius: 16px;
+            background: var(--glass-bg); 
+            backdrop-filter: blur(20px); 
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid var(--glass-border); 
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+            border-radius: 20px;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
         }
+        
+        .kpi-card {
+            position: relative;
+            overflow: hidden;
+        }
+        .kpi-card::before {
+            content: ''; position: absolute; top: 0; left: 0; width: 4px; height: 100%;
+        }
+        .kpi-green::before { background: linear-gradient(to bottom, #10b981, #047857); }
+        .kpi-blue::before { background: linear-gradient(to bottom, #38bdf8, #0284c7); }
+        .kpi-purple::before { background: linear-gradient(to bottom, #a855f7, #6b21a8); }
+        .kpi-gray::before { background: linear-gradient(to bottom, #94a3b8, #475569); }
 
         .input-ultra { 
-            background: rgba(2, 6, 23, 0.8); 
-            border: 1px solid rgba(255, 255, 255, 0.1); 
-            border-radius: 8px; 
-            padding: 10px 14px; 
-            color: white; 
+            background: rgba(4, 9, 20, 0.8); 
+            border: 1px solid rgba(255, 255, 255, 0.08); 
+            border-radius: 12px; 
+            padding: 12px 16px; 
+            color: #f1f5f9; 
             width: 100%; 
             outline: none; 
-            transition: all 0.2s ease; 
+            transition: all 0.3s ease; 
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.2);
         }
-        .input-ultra:focus { border-color: #38bdf8; box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.15); }
+        .input-ultra:focus { 
+            border-color: #38bdf8; 
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.2), 0 0 0 3px var(--accent-glow); 
+            background: rgba(10, 15, 30, 0.9);
+        }
 
         .btn-ultra { 
-            background: linear-gradient(135deg, #0ea5e9 0%, #6366f1 50%, #a855f7 100%); 
-            color: white; font-weight: 700; padding: 14px; border-radius: 8px; 
-            transition: all 0.3s ease; 
+            background: linear-gradient(135deg, #0ea5e9 0%, #4f46e5 50%, #9333ea 100%); 
+            color: white; 
+            font-weight: 800; 
+            letter-spacing: 1px;
+            padding: 14px; 
+            border-radius: 12px; 
+            border: 1px solid rgba(255,255,255,0.1);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); 
+            box-shadow: 0 4px 15px rgba(79, 70, 229, 0.3);
         }
-        .btn-ultra:hover { transform: translateY(-2px); box-shadow: 0 10px 30px rgba(99, 102, 241, 0.4); }
+        .btn-ultra:hover { 
+            transform: translateY(-3px); 
+            box-shadow: 0 12px 25px rgba(79, 70, 229, 0.5); 
+            filter: brightness(1.1);
+        }
 
         ::-webkit-scrollbar { width: 6px; height: 6px; }
-        ::-webkit-scrollbar-track { background: transparent; }
-        ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); border-radius: 10px; }
+        ::-webkit-scrollbar-track { background: rgba(0,0,0,0.2); border-radius: 10px; }
+        ::-webkit-scrollbar-thumb { background: rgba(56, 189, 248, 0.3); border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: rgba(56, 189, 248, 0.6); }
         
         .live-glow { animation: pulseGlow 2s infinite; }
-        @keyframes pulseGlow { 0% { box-shadow: 0 0 0 0 rgba(14, 165, 233, 0.4); } 70% { box-shadow: 0 0 0 6px rgba(14, 165, 233, 0); } 100% { box-shadow: 0 0 0 0 rgba(14, 165, 233, 0); } }
-        .sync-active-glow { animation: syncGlow 1.5s infinite; }
-        @keyframes syncGlow { 0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.5); } 70% { box-shadow: 0 0 0 8px rgba(16, 185, 129, 0); } 100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); } }
+        @keyframes pulseGlow { 
+            0% { box-shadow: 0 0 0 0 rgba(56, 189, 248, 0.6); } 
+            70% { box-shadow: 0 0 0 8px rgba(56, 189, 248, 0); } 
+            100% { box-shadow: 0 0 0 0 rgba(56, 189, 248, 0); } 
+        }
+
+        .table-row-hover:hover {
+            background: linear-gradient(90deg, rgba(56, 189, 248, 0.05) 0%, transparent 100%);
+            border-left: 2px solid #38bdf8;
+        }
     </style>
 </head>
-<body class="p-4 md:p-8 min-h-screen">
+<body class="p-4 md:p-6 lg:p-8 min-h-screen">
 
     <div class="max-w-[1600px] mx-auto">
-        <header class="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 border-b border-slate-800 pb-6 gap-4">
+        <header class="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 bg-slate-900/30 p-6 rounded-2xl border border-slate-800/50 backdrop-blur-md">
             <div>
-                <h1 class="text-3xl font-black tracking-tight">QUANTUM<span class="text-transparent bg-clip-text bg-gradient-to-r from-sky-400 to-indigo-500">TRADER</span> <span class="text-[10px] bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-2 py-0.5 rounded ml-2 align-middle font-bold">V8.5 PRO</span></h1>
-                <p class="text-xs text-slate-400 mt-2 uppercase tracking-widest font-mono">Real-Time Portfolio & Chart Engine</p>
+                <h1 class="text-3xl md:text-4xl font-black tracking-tighter">
+                    QUANTUM<span class="text-transparent bg-clip-text bg-gradient-to-r from-sky-400 to-indigo-500">TRADER</span> 
+                    <span class="text-[10px] bg-sky-500/20 text-sky-400 border border-sky-500/30 px-2.5 py-1 rounded-full ml-2 align-middle font-bold tracking-widest">PRO V8.5</span>
+                </h1>
+                <p class="text-xs text-slate-400 mt-2 uppercase tracking-[0.2em] font-mono flex items-center gap-2">
+                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 live-glow"></span> Advanced Terminal Engine
+                </p>
             </div>
             
-            <div class="flex flex-wrap gap-3">
-                <button onclick="toggleView('main')" id="btnMain" class="text-xs font-bold bg-slate-800 text-white px-4 py-2 rounded-lg transition border border-slate-700 shadow-inner">📊 Dashboard</button>
-                <button onclick="toggleView('grid')" id="btnGrid" class="text-xs font-bold text-slate-400 hover:text-white hover:bg-slate-800 px-4 py-2 rounded-lg transition border border-transparent">🔲 Multi-Chart Grid</button>
-                <button onclick="clearHistory()" class="text-xs font-semibold text-rose-400 hover:text-white border border-rose-950 hover:bg-rose-900/50 px-4 py-2 rounded-lg transition ml-2">Wipe Database</button>
+            <div class="flex flex-wrap gap-3 mt-4 md:mt-0">
+                <button onclick="toggleView('main')" id="btnMain" class="text-xs font-bold bg-sky-600/20 text-sky-400 px-5 py-2.5 rounded-xl transition border border-sky-500/30 shadow-[0_0_15px_rgba(56,189,248,0.1)]">
+                    📊 Dashboard
+                </button>
+                <button onclick="toggleView('grid')" id="btnGrid" class="text-xs font-bold text-slate-400 hover:text-white bg-slate-800/50 hover:bg-slate-800 px-5 py-2.5 rounded-xl transition border border-slate-700/50">
+                    🔲 Grid View
+                </button>
+                <button onclick="clearHistory()" class="text-xs font-bold text-rose-400 bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/20 px-5 py-2.5 rounded-xl transition md:ml-4">
+                    Wipe Data
+                </button>
             </div>
         </header>
 
-        <div id="view-main" class="grid grid-cols-1 xl:grid-cols-12 gap-6 transition-all duration-300">
+        <div id="view-main" class="grid grid-cols-1 xl:grid-cols-12 gap-6 transition-all duration-500">
+            
             <div class="xl:col-span-3 space-y-6 h-fit sticky top-6">
-                <div class="glass-card p-6">
-                    <h2 class="text-xs font-bold text-slate-300 uppercase tracking-widest mb-6 flex items-center gap-2"><span class="w-2 h-2 rounded-full bg-emerald-400 live-glow"></span> Execute Order</h2>
-                    <form id="tradeForm" class="space-y-4">
-                        <div class="grid grid-cols-3 gap-2">
+                <div class="glass-card p-6 border-t-4 border-t-indigo-500">
+                    <div class="flex justify-between items-center mb-6">
+                        <h2 class="text-xs font-bold text-white uppercase tracking-widest flex items-center gap-2">
+                            🚀 Execute Order
+                        </h2>
+                    </div>
+                    
+                    <form id="tradeForm" class="space-y-5">
+                        <div class="grid grid-cols-3 gap-3">
                             <div class="col-span-2">
-                                <label class="block text-[10px] font-semibold text-slate-400 mb-1 uppercase">Symbol</label>
-                                <input type="text" id="symbol" list="tickers" placeholder="RELIANCE" required autocomplete="off" class="input-ultra font-mono text-sm uppercase">
+                                <label class="block text-[10px] font-bold text-slate-400 mb-1.5 uppercase tracking-wider">Symbol</label>
+                                <input type="text" id="symbol" list="tickers" placeholder="e.g. RELIANCE" required autocomplete="off" class="input-ultra font-mono text-sm uppercase">
                                 <datalist id="tickers"></datalist>
                             </div>
                             <div>
-                                <label class="block text-[10px] font-semibold text-slate-400 mb-1 uppercase">Tag</label>
-                                <select id="tag" class="input-ultra text-xs h-[42px] p-1"><option value="Scalp">Scalp</option><option value="Intraday">Intraday</option><option value="Swing">Swing</option></select>
+                                <label class="block text-[10px] font-bold text-slate-400 mb-1.5 uppercase tracking-wider">Tag</label>
+                                <select id="tag" class="input-ultra text-xs h-[46px] p-2">
+                                    <option value="Scalp">Scalp</option>
+                                    <option value="Intraday">Intra</option>
+                                    <option value="Swing">Swing</option>
+                                </select>
                             </div>
                         </div>
+                        
                         <div class="grid grid-cols-2 gap-3">
-                            <div><label class="block text-[10px] font-semibold text-slate-400 mb-1 uppercase">Direction</label><select id="type" class="input-ultra text-sm cursor-pointer"><option value="LONG">LONG (Buy)</option><option value="SHORT">SHORT (Sell)</option></select></div>
-                            <div><label class="block text-[10px] font-semibold text-slate-400 mb-1 uppercase">Quantity</label><input type="number" id="qty" placeholder="1" required step="any" min="0.001" class="input-ultra font-mono text-sm"></div>
-                        </div>
-                        <div class="p-4 bg-slate-900/50 rounded-lg border border-slate-800 space-y-4">
-                            <div><label class="block text-[10px] font-semibold text-slate-400 mb-1 uppercase">Entry Price</label><input type="number" id="entry" placeholder="0.00" required step="any" class="input-ultra font-mono text-sm text-sky-400"></div>
-                            <div class="grid grid-cols-2 gap-3">
-                                <div><label class="block text-[10px] font-semibold text-rose-400 mb-1 uppercase">Stop Loss (%)</label><input type="number" id="sl_pct" placeholder="e.g. 1.5" step="any" class="input-ultra font-mono text-xs border-rose-900/30 bg-rose-950/10"></div>
-                                <div><label class="block text-[10px] font-semibold text-emerald-400 mb-1 uppercase">Target</label><input type="number" id="exit" placeholder="0.00" step="any" class="input-ultra font-mono text-xs border-emerald-900/30 bg-emerald-950/10"></div>
+                            <div>
+                                <label class="block text-[10px] font-bold text-slate-400 mb-1.5 uppercase tracking-wider">Direction</label>
+                                <select id="type" class="input-ultra text-sm cursor-pointer font-bold">
+                                    <option value="LONG" class="text-emerald-500">LONG (Buy)</option>
+                                    <option value="SHORT" class="text-rose-500">SHORT (Sell)</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-[10px] font-bold text-slate-400 mb-1.5 uppercase tracking-wider">Quantity</label>
+                                <input type="number" id="qty" placeholder="0" required step="any" min="0.001" class="input-ultra font-mono text-sm">
                             </div>
                         </div>
-                        <button type="submit" class="w-full btn-ultra text-xs uppercase tracking-widest mt-2">Place Order</button>
+
+                        <div class="p-5 bg-slate-900/60 rounded-xl border border-slate-700/50 space-y-4 shadow-inner">
+                            <div>
+                                <label class="block text-[10px] font-bold text-sky-400 mb-1.5 uppercase tracking-wider">Entry Price</label>
+                                <input type="number" id="entry" placeholder="0.00" required step="any" class="input-ultra font-mono text-lg text-sky-400 font-bold bg-slate-950/50 border-sky-500/20">
+                            </div>
+                            <div class="grid grid-cols-2 gap-3">
+                                <div>
+                                    <label class="block text-[10px] font-bold text-rose-400 mb-1.5 uppercase tracking-wider">SL (%)</label>
+                                    <input type="number" id="sl_pct" placeholder="e.g. 1.5" step="any" class="input-ultra font-mono text-xs border-rose-900/30 bg-rose-950/20 text-rose-300 focus:border-rose-500 focus:ring-rose-500">
+                                </div>
+                                <div>
+                                    <label class="block text-[10px] font-bold text-emerald-400 mb-1.5 uppercase tracking-wider">Target</label>
+                                    <input type="number" id="exit" placeholder="0.00" step="any" class="input-ultra font-mono text-xs border-emerald-900/30 bg-emerald-950/20 text-emerald-300 focus:border-emerald-500 focus:ring-emerald-500">
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <button type="submit" class="w-full btn-ultra text-sm uppercase tracking-widest mt-4">
+                            Deploy Trade
+                        </button>
                     </form>
                 </div>
             </div>
 
             <div class="xl:col-span-9 space-y-6">
-                <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                    <div class="glass-card p-5"><h3 class="text-[10px] text-slate-400 uppercase font-semibold">Realized P&L</h3><p id="netPnL" class="text-3xl font-black mt-2 font-mono tracking-tight">₹0.00</p></div>
-                    <div class="glass-card p-5"><h3 class="text-[10px] text-slate-400 uppercase font-semibold">Win Rate</h3><p id="winRateTxt" class="text-3xl font-black mt-2 font-mono tracking-tight text-sky-400">0%</p></div>
-                    <div class="glass-card p-5"><h3 class="text-[10px] text-slate-400 uppercase font-semibold">Total Invested</h3><p id="totalInvested" class="text-3xl font-black mt-2 font-mono tracking-tight text-indigo-400">₹0.00</p></div>
-                    <div class="glass-card p-5"><h3 class="text-[10px] text-slate-400 uppercase font-semibold">Unrealized P&L</h3><p id="unrealizedPnL" class="text-3xl font-black mt-2 font-mono tracking-tight text-slate-500">₹0.00</p></div>
+                
+                <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
+                    <div class="glass-card kpi-card kpi-green p-6">
+                        <h3 class="text-[10px] text-slate-400 uppercase font-bold tracking-widest mb-1">Realized P&L</h3>
+                        <p id="netPnL" class="text-3xl font-black font-mono tracking-tight text-emerald-400">₹0.00</p>
+                    </div>
+                    <div class="glass-card kpi-card kpi-blue p-6">
+                        <h3 class="text-[10px] text-slate-400 uppercase font-bold tracking-widest mb-1">Win Rate</h3>
+                        <p id="winRateTxt" class="text-3xl font-black font-mono tracking-tight text-sky-400">0%</p>
+                    </div>
+                    <div class="glass-card kpi-card kpi-purple p-6">
+                        <h3 class="text-[10px] text-slate-400 uppercase font-bold tracking-widest mb-1">Capital Deployed</h3>
+                        <p id="totalInvested" class="text-3xl font-black font-mono tracking-tight text-purple-400">₹0.00</p>
+                    </div>
+                    <div class="glass-card kpi-card kpi-gray p-6">
+                        <h3 class="text-[10px] text-slate-400 uppercase font-bold tracking-widest mb-1">Unrealized P&L</h3>
+                        <p id="unrealizedPnL" class="text-3xl font-black font-mono tracking-tight text-slate-300">₹0.00</p>
+                    </div>
                 </div>
 
-                <div class="glass-card overflow-hidden h-[450px] relative">
-                    <div class="absolute top-0 left-0 w-full h-[3px] bg-gradient-to-r from-sky-400 to-indigo-500 z-10"></div>
-                    <div id="tv_chart_container" class="w-full h-full"></div>
+                <div class="glass-card overflow-hidden h-[450px] relative p-1 border-t-2 border-t-slate-700">
+                    <div id="tv_chart_container" class="w-full h-full rounded-xl overflow-hidden bg-[#0f172a]"></div>
                 </div>
 
-                <div class="glass-card overflow-hidden border-sky-900/50">
-                    <div class="flex justify-between items-center p-4 border-b border-slate-800 bg-sky-950/10">
-                        <h3 class="text-xs text-sky-400 font-bold uppercase tracking-widest flex items-center gap-2"><span class="w-2 h-2 rounded-full bg-sky-400 live-glow"></span> Active Positions</h3>
-                        <div class="flex gap-2">
-                            <button onclick="requestNotificationPermission()" class="text-[10px] bg-purple-500/20 hover:bg-purple-500/40 text-purple-300 px-3 py-1.5 rounded uppercase font-bold tracking-wider transition border border-purple-500/30">🔔 Allow Alerts</button>
-                            <button id="autoSyncBtn" onclick="toggleAutoSync()" class="text-[10px] bg-slate-800 hover:bg-slate-700 text-slate-400 px-3 py-1.5 rounded uppercase font-bold tracking-wider transition border border-slate-700">Auto-Sync: OFF 🔴</button>
-                            <button onclick="fetchLiveCMPFromPython()" class="text-[10px] bg-sky-500/20 hover:bg-sky-500/40 text-sky-300 px-3 py-1.5 rounded uppercase font-bold tracking-wider transition border border-sky-500/30">⚡ Sync Now</button>
+                <div class="glass-card overflow-hidden">
+                    <div class="flex flex-col md:flex-row justify-between items-start md:items-center p-5 border-b border-slate-800/50 bg-slate-900/40">
+                        <h3 class="text-xs text-sky-400 font-black uppercase tracking-widest flex items-center gap-2 mb-3 md:mb-0">
+                            <span class="w-2.5 h-2.5 rounded-full bg-sky-400 live-glow"></span> Active Positions
+                        </h3>
+                        <div class="flex flex-wrap gap-2">
+                            <button onclick="requestNotificationPermission()" class="text-[10px] bg-purple-500/10 hover:bg-purple-500/20 text-purple-300 px-4 py-2 rounded-lg uppercase font-bold tracking-wider transition border border-purple-500/20">
+                                🔔 Alerts
+                            </button>
+                            <button id="autoSyncBtn" onclick="toggleAutoSync()" class="text-[10px] bg-slate-800/80 hover:bg-slate-700 text-slate-300 px-4 py-2 rounded-lg uppercase font-bold tracking-wider transition border border-slate-600">
+                                Auto-Sync: OFF 🔴
+                            </button>
+                            <button onclick="fetchLiveCMPFromPython()" class="text-[10px] bg-sky-500/10 hover:bg-sky-500/30 text-sky-400 px-4 py-2 rounded-lg uppercase font-bold tracking-wider transition border border-sky-500/30">
+                                ⚡ Sync Now
+                            </button>
                         </div>
                     </div>
+                    
                     <div class="overflow-x-auto">
                         <table class="w-full text-left text-sm whitespace-nowrap">
                             <thead>
-                                <tr class="bg-slate-900/30 text-[10px] text-slate-400 uppercase tracking-widest border-b border-slate-800">
-                                    <th class="py-3 px-5">Symbol</th><th class="py-3 px-5 text-center">Qty</th><th class="py-3 px-5">Type</th>
-                                    <th class="py-3 px-5">Entry & SL</th><th class="py-3 px-5">Invested (₹)</th><th class="py-3 px-5 text-center">Live CMP (₹)</th>
-                                    <th class="py-3 px-5 text-right">Unrealized P&L</th><th class="py-3 px-5 text-center">Action</th>
+                                <tr class="bg-slate-900/80 text-[10px] text-slate-400 uppercase tracking-widest border-b border-slate-700/50">
+                                    <th class="py-4 px-6 font-semibold">Asset</th>
+                                    <th class="py-4 px-6 font-semibold text-center">Qty & Type</th>
+                                    <th class="py-4 px-6 font-semibold">Entry / SL</th>
+                                    <th class="py-4 px-6 font-semibold">Capital (₹)</th>
+                                    <th class="py-4 px-6 font-semibold text-center">Live CMP</th>
+                                    <th class="py-4 px-6 font-semibold text-right">Net P&L</th>
+                                    <th class="py-4 px-6 font-semibold text-center">Actions</th>
                                 </tr>
                             </thead>
                             <tbody id="openPositionsBody" class="divide-y divide-slate-800/40"></tbody>
                         </table>
-                        <div id="noOpenState" class="p-8 text-center hidden bg-slate-900/20"><p class="text-slate-500 font-mono text-xs">No active positions running.</p></div>
+                        <div id="noOpenState" class="p-12 text-center hidden bg-slate-900/10">
+                            <div class="text-4xl mb-3 opacity-20">📊</div>
+                            <p class="text-slate-500 font-mono text-xs uppercase tracking-widest">No active positions running</p>
+                        </div>
                     </div>
                 </div>
 
-                <div class="glass-card overflow-hidden">
-                    <div class="p-4 border-b border-slate-800 bg-slate-900/30"><h3 class="text-xs text-slate-300 font-semibold uppercase tracking-widest">Closed Trade Ledger</h3></div>
+                <div class="glass-card overflow-hidden opacity-90">
+                    <div class="p-5 border-b border-slate-800/50 bg-slate-900/20">
+                        <h3 class="text-xs text-slate-400 font-bold uppercase tracking-widest">Closed Trade Ledger</h3>
+                    </div>
                     <div class="overflow-x-auto">
                         <table class="w-full text-left text-sm whitespace-nowrap">
-                            <thead><tr class="bg-slate-900/50 text-[10px] text-slate-400 uppercase tracking-widest border-b border-slate-800"><th class="py-3 px-5">Timeline & Asset</th><th class="py-3 px-5 text-center">Qty</th><th class="py-3 px-5">Setup</th><th class="py-3 px-5">Prices</th><th class="py-3 px-5 text-right">Realized P&L</th><th class="py-3 px-5 text-center">Delete</th></tr></thead>
+                            <thead>
+                                <tr class="bg-slate-900/50 text-[10px] text-slate-500 uppercase tracking-widest border-b border-slate-800/50">
+                                    <th class="py-3 px-6">Timeline & Asset</th>
+                                    <th class="py-3 px-6 text-center">Qty / Type</th>
+                                    <th class="py-3 px-6">Prices (In → Out)</th>
+                                    <th class="py-3 px-6 text-right">Realized P&L</th>
+                                    <th class="py-3 px-6 text-center">Action</th>
+                                </tr>
+                            </thead>
                             <tbody id="closedTradeBody" class="divide-y divide-slate-800/40"></tbody>
                         </table>
                     </div>
@@ -163,53 +294,60 @@
             </div>
         </div>
 
-        <div id="view-grid" class="hidden transition-all duration-300">
-            <div class="mb-4 flex items-center justify-between"><h2 class="text-xl font-bold text-white flex items-center gap-3"><span class="w-3 h-3 rounded-full bg-sky-500 live-glow"></span> Open Positions Grid</h2></div>
+        <div id="view-grid" class="hidden transition-all duration-500">
+            <div class="mb-6 flex items-center justify-between bg-slate-900/30 p-4 rounded-xl border border-slate-800">
+                <h2 class="text-lg font-black text-white flex items-center gap-3 tracking-wide">
+                    <span class="w-3 h-3 rounded-full bg-sky-500 live-glow"></span> Open Positions Grid
+                </h2>
+                <p class="text-xs text-slate-400 font-mono hidden md:block">Real-time synchronized visualization</p>
+            </div>
+            
             <div id="multiChartContainer" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6"></div>
         </div>
+
     </div>
 
-    <div id="closeModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm hidden items-center justify-center z-50">
-        <div class="glass-card p-6 w-full max-w-sm">
-            <h3 class="text-sm font-bold text-white mb-4 uppercase tracking-wider" id="modalTitle">Close Position</h3>
+    <div id="closeModal" class="fixed inset-0 bg-black/90 backdrop-blur-md hidden items-center justify-center z-50">
+        <div class="glass-card p-8 w-full max-w-sm border-purple-500/30">
+            <h3 class="text-sm font-black text-white mb-6 uppercase tracking-widest" id="modalTitle">Close Position</h3>
             <input type="hidden" id="modalTradeId">
-            <label class="block text-[10px] font-semibold text-slate-400 mb-1 uppercase">Final Exit Price</label>
-            <input type="number" id="modalExitPrice" placeholder="0.00" step="any" class="input-ultra font-mono mb-4 text-purple-400">
+            <label class="block text-[10px] font-bold text-slate-400 mb-2 uppercase tracking-wider">Final Exit Price</label>
+            <input type="number" id="modalExitPrice" placeholder="0.00" step="any" class="input-ultra font-mono text-lg mb-6 text-purple-400 bg-purple-950/20 border-purple-500/20">
             <div class="flex gap-3">
-                <button onclick="closeModalFunc()" class="flex-1 bg-slate-800 text-white text-xs py-3 rounded-lg font-bold">Cancel</button>
-                <button onclick="submitCloseTrade()" class="flex-1 bg-purple-600 hover:bg-purple-500 text-white text-xs py-3 rounded-lg font-bold">Confirm Exit</button>
+                <button onclick="closeModalFunc()" class="flex-1 bg-slate-800 hover:bg-slate-700 text-white text-xs py-3.5 rounded-xl font-bold transition">Cancel</button>
+                <button onclick="submitCloseTrade()" class="flex-1 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white text-xs py-3.5 rounded-xl font-bold shadow-lg transition transform hover:-translate-y-1">Confirm Exit</button>
             </div>
         </div>
     </div>
 
-    <div id="editModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm hidden items-center justify-center z-50">
-        <div class="glass-card p-6 w-full max-w-sm border-sky-500/30">
-            <h3 class="text-sm font-bold text-sky-400 mb-4 uppercase tracking-wider flex items-center gap-2" id="editModalTitle">✏️ Edit Position</h3>
+    <div id="editModal" class="fixed inset-0 bg-black/90 backdrop-blur-md hidden items-center justify-center z-50">
+        <div class="glass-card p-8 w-full max-w-sm border-sky-500/30">
+            <h3 class="text-sm font-black text-sky-400 mb-6 uppercase tracking-widest flex items-center gap-2" id="editModalTitle">✏️ Edit Position</h3>
             <input type="hidden" id="editTradeId">
-            <div class="space-y-4 mb-5">
-                <div class="grid grid-cols-2 gap-3">
-                    <div><label class="block text-[10px] font-semibold text-slate-400 mb-1 uppercase">Quantity</label><input type="number" id="editQty" step="any" required class="input-ultra font-mono text-sm"></div>
-                    <div><label class="block text-[10px] font-semibold text-slate-400 mb-1 uppercase">Entry Price</label><input type="number" id="editEntry" step="any" required class="input-ultra font-mono text-sm text-sky-400"></div>
+            <div class="space-y-5 mb-6">
+                <div class="grid grid-cols-2 gap-4">
+                    <div><label class="block text-[10px] font-bold text-slate-400 mb-2 uppercase">Quantity</label><input type="number" id="editQty" step="any" required class="input-ultra font-mono text-sm"></div>
+                    <div><label class="block text-[10px] font-bold text-slate-400 mb-2 uppercase">Entry Price</label><input type="number" id="editEntry" step="any" required class="input-ultra font-mono text-sm text-sky-400 bg-sky-950/20"></div>
                 </div>
-                <div class="grid grid-cols-2 gap-3">
-                    <div><label class="block text-[10px] font-semibold text-rose-400 mb-1 uppercase">SL Price (₹)</label><input type="number" id="editSL" step="any" class="input-ultra font-mono text-xs border-rose-900/30 bg-rose-950/10 text-rose-300"></div>
-                    <div><label class="block text-[10px] font-semibold text-emerald-400 mb-1 uppercase">Target (₹)</label><input type="number" id="editExit" step="any" class="input-ultra font-mono text-xs border-emerald-900/30 bg-emerald-950/10 text-emerald-300"></div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div><label class="block text-[10px] font-bold text-rose-400 mb-2 uppercase">SL Price</label><input type="number" id="editSL" step="any" class="input-ultra font-mono text-xs border-rose-900/30 bg-rose-950/20 text-rose-300"></div>
+                    <div><label class="block text-[10px] font-bold text-emerald-400 mb-2 uppercase">Target</label><input type="number" id="editExit" step="any" class="input-ultra font-mono text-xs border-emerald-900/30 bg-emerald-950/20 text-emerald-300"></div>
                 </div>
             </div>
             <div class="flex gap-3">
-                <button onclick="closeEditModal()" class="flex-1 bg-slate-800 text-white text-xs py-3 rounded-lg font-bold">Cancel</button>
-                <button onclick="submitEditTrade()" class="flex-1 bg-sky-600 hover:bg-sky-500 text-white text-xs py-3 rounded-lg font-bold">Save Changes</button>
+                <button onclick="closeEditModal()" class="flex-1 bg-slate-800 hover:bg-slate-700 text-white text-xs py-3.5 rounded-xl font-bold transition">Cancel</button>
+                <button onclick="submitEditTrade()" class="flex-1 bg-gradient-to-r from-sky-600 to-blue-600 hover:from-sky-500 hover:to-blue-500 text-white text-xs py-3.5 rounded-xl font-bold shadow-lg transition transform hover:-translate-y-1">Save Changes</button>
             </div>
         </div>
     </div>
 
     <script>
-        // ================= SERVICE WORKER =================
+        // SW Registration
         if ('serviceWorker' in navigator) {
             navigator.serviceWorker.register('sw.js').then(() => console.log("PWA SW Registered!")).catch(e => console.error("SW Error:", e));
         }
 
-        // ================= FIREBASE =================
+        // Firebase Setup
         const FIREBASE_DB_URL = "https://quantum-tracker-6fe30-default-rtdb.firebaseio.com";
         firebase.initializeApp({ databaseURL: FIREBASE_DB_URL });
         const fbDatabase = firebase.database();
@@ -234,7 +372,7 @@
 
         function saveData() { fbDatabase.ref('trades').set(trades); }
 
-        // ================= TRADINGVIEW WIDGET LOGIC =================
+        // TV Widget Formatting
         function formatTVSymbol(symbol) {
             if (symbol === "NIFTY") return "BSE:NIFTY50";
             if (symbol === "BANKNIFTY") return "BSE:BANKNIFTY";
@@ -255,7 +393,6 @@
             });
         }
 
-        // On Page Load - Show Initial Chart
         window.onload = () => { loadMainChart("NIFTY"); };
 
         function toggleView(view) {
@@ -267,13 +404,16 @@
 
             if(view === 'grid') {
                 viewMain.classList.add('hidden'); viewGrid.classList.remove('hidden');
-                btnGrid.classList.replace('text-slate-400', 'text-white'); btnGrid.classList.add('bg-slate-800', 'shadow-inner');
-                btnMain.classList.remove('bg-slate-800', 'shadow-inner', 'text-white'); btnMain.classList.add('text-slate-400');
+                
+                btnGrid.className = "text-xs font-bold bg-sky-600/20 text-sky-400 px-5 py-2.5 rounded-xl transition border border-sky-500/30 shadow-[0_0_15px_rgba(56,189,248,0.1)]";
+                btnMain.className = "text-xs font-bold text-slate-400 hover:text-white bg-slate-800/50 hover:bg-slate-800 px-5 py-2.5 rounded-xl transition border border-slate-700/50";
+                
                 renderMultiCharts();
             } else {
                 viewGrid.classList.add('hidden'); viewMain.classList.remove('hidden');
-                btnMain.classList.replace('text-slate-400', 'text-white'); btnMain.classList.add('bg-slate-800', 'shadow-inner');
-                btnGrid.classList.remove('bg-slate-800', 'shadow-inner', 'text-white'); btnGrid.classList.add('text-slate-400');
+                
+                btnMain.className = "text-xs font-bold bg-sky-600/20 text-sky-400 px-5 py-2.5 rounded-xl transition border border-sky-500/30 shadow-[0_0_15px_rgba(56,189,248,0.1)]";
+                btnGrid.className = "text-xs font-bold text-slate-400 hover:text-white bg-slate-800/50 hover:bg-slate-800 px-5 py-2.5 rounded-xl transition border border-slate-700/50";
             }
         }
 
@@ -282,7 +422,7 @@
             container.innerHTML = ''; 
             const openTrades = trades.filter(t => t.status === 'OPEN');
             if(openTrades.length === 0) {
-                container.innerHTML = `<div class="col-span-full glass-card p-12 text-center text-slate-500 font-mono">No active positions to display in grid.</div>`; return;
+                container.innerHTML = `<div class="col-span-full glass-card p-16 text-center text-slate-500 font-mono uppercase tracking-widest text-xs">No active positions to display in grid.</div>`; return;
             }
             openTrades.forEach(t => {
                 const chartId = 'tv_mini_' + t.id;
@@ -293,27 +433,27 @@
                 const pnlColor = unrealized >= 0 ? 'text-emerald-400' : 'text-rose-400';
                 
                 const card = document.createElement('div');
-                card.className = 'glass-card flex flex-col h-[350px] overflow-hidden border-t-2 border-t-sky-500';
+                card.className = 'glass-card flex flex-col h-[380px] overflow-hidden border-t-4 border-t-sky-500/50 hover:border-t-sky-400 transition-colors';
                 card.innerHTML = `
-                    <div class="px-3 py-2 bg-slate-900/50 border-b border-slate-800 flex justify-between items-center">
-                        <span class="font-bold text-white font-mono text-sm">${t.symbol}</span>
-                        <span class="text-[10px] font-bold px-2 py-0.5 rounded ${t.type === 'LONG' ? 'bg-emerald-500/20 text-emerald-400' : 'bg-rose-500/20 text-rose-400'}">${t.type} x${t.qty}</span>
+                    <div class="px-5 py-3 bg-slate-900/60 border-b border-slate-800/50 flex justify-between items-center">
+                        <span class="font-black text-white font-mono text-base tracking-tight cursor-pointer hover:text-sky-400 transition" onclick="loadMainChart('${t.symbol}'); toggleView('main');">${t.symbol}</span>
+                        <span class="text-[10px] font-bold px-2.5 py-1 rounded-full border ${t.type === 'LONG' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'bg-rose-500/10 text-rose-400 border-rose-500/20'}">${t.type} x${t.qty}</span>
                     </div>
-                    <div class="px-3 py-2 bg-slate-950 border-b border-slate-800 flex flex-col font-mono tracking-tight">
-                        <div class="flex justify-between items-center w-full">
-                            <span class="text-slate-300 font-bold text-[13px]">Used: ₹${invested.toLocaleString('en-IN', {maximumFractionDigits:0})}</span>
-                            <span class="font-black ${pnlColor} text-[15px]">${unrealized >= 0 ? '+' : ''}₹${unrealized.toFixed(2)}</span>
+                    <div class="px-5 py-3 bg-slate-950/80 border-b border-slate-800/50 flex flex-col font-mono tracking-tight">
+                        <div class="flex justify-between items-center w-full mb-1">
+                            <span class="text-slate-400 font-medium text-[11px] uppercase tracking-wider">Invested: ₹${invested.toLocaleString('en-IN', {maximumFractionDigits:0})}</span>
+                            <span class="font-black ${pnlColor} text-[16px]">${unrealized >= 0 ? '+' : ''}₹${unrealized.toFixed(2)}</span>
                         </div>
                         <div class="text-right text-[11px] font-bold ${pnlColor}">(${finalPct >= 0 ? '+' : ''}${finalPct.toFixed(2)}%)</div>
                     </div>
-                    <div id="${chartId}" class="w-full flex-1"></div>`;
+                    <div id="${chartId}" class="w-full flex-1 bg-[#0f172a]"></div>`;
                 container.appendChild(card);
                 
                 new TradingView.widget({ "autosize": true, "symbol": formatTVSymbol(t.symbol), "interval": "D", "timezone": "Asia/Kolkata", "theme": "dark", "style": "1", "locale": "in", "enable_publishing": false, "backgroundColor": "#0f172a", "hide_top_toolbar": true, "hide_side_toolbar": true, "hide_legend": true, "save_image": false, "container_id": chartId });
             });
         }
 
-        // ================= ALERTS & LOGIC =================
+        // Action Logic
         function checkStopLoss(trade) {
             if (trade.sl && !trade.slHit) {
                 if ((trade.type === 'LONG' && trade.liveCMP <= trade.sl) || (trade.type === 'SHORT' && trade.liveCMP >= trade.sl)) {
@@ -362,6 +502,7 @@
             const openTrades = trades.filter(t => t.status === 'OPEN'); if(openTrades.length === 0) return;
             for(let t of openTrades) {
                 try {
+                    if(t.slHit === undefined) t.slHit = false;
                     let sym = t.symbol.includes('.') ? t.symbol : t.symbol + '.NS';
                     const res = await fetch(`https://quantum-trader-rlme.onrender.com/api/price/${sym}`);
                     const data = await res.json();
@@ -374,15 +515,15 @@
         function toggleAutoSync() {
             isAutoSyncing = !isAutoSyncing; const btn = document.getElementById('autoSyncBtn');
             if(isAutoSyncing) {
-                btn.innerHTML = "Auto-Sync: ON 🟢"; btn.className = "text-[10px] bg-emerald-500/20 text-emerald-300 px-3 py-1.5 rounded uppercase font-bold border border-emerald-500/40 sync-active-glow";
+                btn.innerHTML = "Auto-Sync: ON 🟢"; btn.className = "text-[10px] bg-emerald-500/20 text-emerald-400 px-4 py-2 rounded-lg uppercase font-bold border border-emerald-500/40 sync-active-glow shadow-[0_0_10px_rgba(16,185,129,0.2)]";
                 fetchLiveCMPFromPython(); autoSyncTimer = setInterval(fetchLiveCMPFromPython, 15000);
             } else {
-                btn.innerHTML = "Auto-Sync: OFF 🔴"; btn.className = "text-[10px] bg-slate-800 text-slate-400 px-3 py-1.5 rounded uppercase font-bold border border-slate-700";
+                btn.innerHTML = "Auto-Sync: OFF 🔴"; btn.className = "text-[10px] bg-slate-800/80 hover:bg-slate-700 text-slate-300 px-4 py-2 rounded-lg uppercase font-bold tracking-wider transition border border-slate-600";
                 clearInterval(autoSyncTimer);
             }
         }
 
-        // Modals
+        // Modals Logic
         function openEditModal(id) {
             const t = trades.find(t => t.id === id); if(!t) return;
             document.getElementById('editTradeId').value = id; document.getElementById('editQty').value = t.qty;
@@ -415,7 +556,7 @@
             }
         }
 
-        // ================= UI RENDER =================
+        // Table UI Render
         function renderUI() {
             const openBody = document.getElementById('openPositionsBody'); const closedBody = document.getElementById('closedTradeBody');
             openBody.innerHTML = ''; closedBody.innerHTML = '';
@@ -431,45 +572,64 @@
                     const liveCMP = t.liveCMP || t.entry;
                     let unrealized = t.type === 'LONG' ? (liveCMP - t.entry) * t.qty : (t.entry - liveCMP) * t.qty; totalUnrealizedPnL += unrealized;
                     const profitPct = ((liveCMP - t.entry) / t.entry) * 100; const finalPct = t.type === 'LONG' ? profitPct : -profitPct;
+                    
                     const pnlColor = unrealized >= 0 ? 'text-emerald-400' : 'text-rose-400';
-                    const typeBadge = t.type === 'LONG' ? `<span class="bg-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded text-[10px] font-bold">L</span>` : `<span class="bg-rose-500/20 text-rose-400 px-2 py-0.5 rounded text-[10px] font-bold">S</span>`;
-                    const slBadge = t.sl ? `<br><span class="inline-block mt-1 text-[10px] border px-1.5 py-0.5 rounded font-bold ${t.slHit ? "text-rose-100 bg-rose-600 border-rose-500" : "text-rose-400 bg-rose-500/10 border-rose-500/20"}">${t.slHit ? "SL HIT!" : 'SL: ₹'+t.sl.toFixed(2)}</span>` : '';
+                    const typeClass = t.type === 'LONG' ? 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20' : 'text-rose-400 bg-rose-500/10 border-rose-500/20';
+                    const slBadge = t.sl ? `<div class="mt-1 inline-block text-[9px] px-1.5 py-0.5 rounded border ${t.slHit ? "text-rose-100 bg-rose-600 border-rose-500 font-bold" : "text-rose-400 bg-rose-500/10 border-rose-500/20"}">${t.slHit ? "SL HIT!" : 'SL: ₹'+t.sl.toFixed(2)}</div>` : '';
 
-                    openBody.innerHTML += `<tr class="hover:bg-slate-800/50 transition-colors">
-                        <td class="py-3 px-5 font-bold font-mono text-white text-sm">${t.symbol}</td>
-                        <td class="py-3 px-5 text-center font-black font-mono text-sky-400 text-base">${t.qty}</td>
-                        <td class="py-3 px-5">${typeBadge} <span class="text-[9px] ml-1 text-slate-400">${t.tag}</span></td>
-                        <td class="py-3 px-5 font-mono text-xs text-sky-300">₹${t.entry.toFixed(2)}${slBadge}</td>
-                        <td class="py-3 px-5 font-mono text-xs text-slate-300">₹${invested.toLocaleString('en-IN', {maximumFractionDigits:0})}</td>
-                        <td class="py-3 px-5 text-center"><input type="number" step="any" value="${liveCMP}" onchange="updateLiveCMP(${t.id}, this.value)" class="w-20 bg-slate-900 border border-slate-700 rounded p-1 text-xs font-mono text-center text-white outline-none"></td>
-                        <td class="py-3 px-5 text-right font-bold font-mono ${pnlColor}"><div>${unrealized >= 0 ? '+' : ''}₹${unrealized.toFixed(2)}</div><div class="text-[10px] opacity-80">(${finalPct >= 0 ? '+' : ''}${finalPct.toFixed(2)}%)</div></td>
-                        <td class="py-3 px-5 text-center flex justify-center items-center gap-1.5">
-                            <button onclick="loadMainChart('${t.symbol}')" title="Chart" class="bg-sky-500/20 text-sky-300 px-2 py-1.5 rounded text-[10px] font-bold uppercase transition hover:bg-sky-500/40">📉</button>
-                            <button onclick="openEditModal(${t.id})" title="Edit" class="bg-blue-600/20 text-blue-400 px-2 py-1.5 rounded text-[10px] font-bold uppercase transition hover:bg-blue-600/40">✏️</button>
-                            <button onclick="openCloseModal(${t.id}, '${t.symbol}')" title="Close" class="bg-purple-600/20 text-purple-400 px-2 py-1.5 rounded text-[10px] font-bold uppercase transition hover:bg-purple-600/40">Exit</button>
-                            <button onclick="deleteTrade(${t.id})" title="Delete" class="text-rose-500 hover:bg-rose-500/20 px-2 rounded text-sm font-bold">×</button>
-                        </td></tr>`;
+                    openBody.innerHTML += `<tr class="table-row-hover border-b border-slate-800/40 cursor-default">
+                        <td class="py-4 px-6 font-black font-mono text-white text-[15px] cursor-pointer" onclick="loadMainChart('${t.symbol}')">${t.symbol}</td>
+                        <td class="py-4 px-6 text-center">
+                            <div class="font-black font-mono text-slate-200 text-sm mb-1">${t.qty}</div>
+                            <div class="text-[9px] font-bold px-1.5 py-0.5 rounded-full border inline-block uppercase ${typeClass}">${t.type}</div>
+                        </td>
+                        <td class="py-4 px-6 font-mono text-xs text-sky-300">
+                            ₹${t.entry.toFixed(2)}${slBadge}
+                        </td>
+                        <td class="py-4 px-6 font-mono text-xs text-slate-400">₹${invested.toLocaleString('en-IN', {maximumFractionDigits:0})}</td>
+                        <td class="py-4 px-6 text-center">
+                            <input type="number" step="any" value="${liveCMP}" onchange="updateLiveCMP(${t.id}, this.value)" class="w-24 bg-slate-950/80 border border-slate-700/50 rounded-lg p-1.5 text-xs font-mono text-center text-white outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500/50 transition">
+                        </td>
+                        <td class="py-4 px-6 text-right font-mono">
+                            <div class="font-black text-sm ${pnlColor}">${unrealized >= 0 ? '+' : ''}₹${unrealized.toFixed(2)}</div>
+                            <div class="text-[10px] font-bold opacity-80 mt-0.5 ${pnlColor}">(${finalPct >= 0 ? '+' : ''}${finalPct.toFixed(2)}%)</div>
+                        </td>
+                        <td class="py-4 px-6 text-center">
+                            <div class="flex justify-center items-center gap-2">
+                                <button onclick="loadMainChart('${t.symbol}')" title="Chart" class="w-8 h-8 rounded-lg bg-slate-800 hover:bg-sky-500/20 text-slate-400 hover:text-sky-400 border border-slate-700 hover:border-sky-500/30 flex items-center justify-center transition">📉</button>
+                                <button onclick="openEditModal(${t.id})" title="Edit" class="w-8 h-8 rounded-lg bg-slate-800 hover:bg-blue-500/20 text-slate-400 hover:text-blue-400 border border-slate-700 hover:border-blue-500/30 flex items-center justify-center transition">✏️</button>
+                                <button onclick="openCloseModal(${t.id}, '${t.symbol}')" title="Close" class="w-8 h-8 rounded-lg bg-slate-800 hover:bg-purple-500/20 text-slate-400 hover:text-purple-400 border border-slate-700 hover:border-purple-500/30 flex items-center justify-center transition">⏏️</button>
+                                <button onclick="deleteTrade(${t.id})" title="Delete" class="w-8 h-8 rounded-lg text-slate-500 hover:text-rose-500 hover:bg-rose-500/10 flex items-center justify-center transition">×</button>
+                            </div>
+                        </td>
+                    </tr>`;
                 });
             }
 
             closedTrades.forEach(t => {
                 totalRealizedPnL += t.pnl; closedCount++; if(t.pnl > 0) totalWins++;
                 const pnlColor = t.pnl >= 0 ? 'text-emerald-400' : 'text-rose-400';
-                closedBody.innerHTML += `<tr class="hover:bg-slate-800/20 opacity-80">
-                    <td class="py-3 px-5"><div class="font-bold text-white font-mono text-sm">${t.symbol}</div><div class="text-[9px] text-slate-500">${t.date}</div></td>
-                    <td class="py-3 px-5 text-center font-black font-mono text-sky-400 text-base">${t.qty}</td>
-                    <td class="py-3 px-5"><span class="${t.type==='LONG'?'text-emerald-400':'text-rose-400'} text-[9px] font-bold">${t.type}</span></td>
-                    <td class="py-3 px-5 font-mono text-xs"><span class="text-slate-400">₹${t.entry.toFixed(2)}</span> → <span class="text-slate-400">₹${t.exit.toFixed(2)}</span></td>
-                    <td class="py-3 px-5 font-bold font-mono text-right ${pnlColor} text-sm">${t.pnl>=0?'+':''}₹${t.pnl.toFixed(2)}</td>
-                    <td class="py-3 px-5 text-center"><button onclick="deleteTrade(${t.id})" class="text-slate-600 hover:text-rose-500 text-lg font-bold px-2 rounded">×</button></td></tr>`;
+                closedBody.innerHTML += `<tr class="hover:bg-slate-800/30 transition-colors opacity-75 hover:opacity-100">
+                    <td class="py-3 px-6"><div class="font-bold text-slate-200 font-mono text-sm">${t.symbol}</div><div class="text-[9px] text-slate-500 mt-0.5">${t.date}</div></td>
+                    <td class="py-3 px-6 text-center">
+                        <span class="font-black font-mono text-slate-300 mr-2">${t.qty}</span>
+                        <span class="${t.type==='LONG'?'text-emerald-500 bg-emerald-500/10':'text-rose-500 bg-rose-500/10'} px-1.5 py-0.5 rounded border ${t.type==='LONG'?'border-emerald-500/20':'border-rose-500/20'} text-[9px] font-bold">${t.type}</span>
+                    </td>
+                    <td class="py-3 px-6 font-mono text-xs"><span class="text-slate-400">₹${t.entry.toFixed(2)}</span> <span class="text-slate-600 mx-1">→</span> <span class="text-slate-300">₹${t.exit.toFixed(2)}</span></td>
+                    <td class="py-3 px-6 font-black font-mono text-right ${pnlColor} text-sm">${t.pnl>=0?'+':''}₹${t.pnl.toFixed(2)}</td>
+                    <td class="py-3 px-6 text-center"><button onclick="deleteTrade(${t.id})" class="text-slate-600 hover:text-rose-500 hover:bg-rose-500/10 w-6 h-6 rounded flex items-center justify-center mx-auto transition">×</button></td>
+                </tr>`;
             });
 
             document.getElementById('netPnL').innerText = (totalRealizedPnL >= 0 ? '+' : '') + '₹' + totalRealizedPnL.toLocaleString('en-IN', {maximumFractionDigits:2});
-            document.getElementById('netPnL').className = `text-3xl font-black mt-2 font-mono tracking-tight ${totalRealizedPnL >= 0 ? 'text-emerald-400' : 'text-rose-400'}`;
+            document.getElementById('netPnL').className = `text-3xl font-black font-mono tracking-tight ${totalRealizedPnL >= 0 ? 'text-emerald-400' : 'text-rose-400'}`;
+            
             document.getElementById('winRateTxt').innerText = closedCount > 0 ? ((totalWins / closedCount) * 100).toFixed(1) + '%' : '0%';
+            
             document.getElementById('totalInvested').innerText = '₹' + totalInvestedAmt.toLocaleString('en-IN', {maximumFractionDigits:2});
+            
             document.getElementById('unrealizedPnL').innerText = (totalUnrealizedPnL >= 0 ? '+' : '') + '₹' + totalUnrealizedPnL.toLocaleString('en-IN', {maximumFractionDigits:2});
-            document.getElementById('unrealizedPnL').className = `text-3xl font-black mt-2 font-mono tracking-tight ${totalUnrealizedPnL >= 0 ? 'text-emerald-400' : 'text-rose-400'}`;
+            document.getElementById('unrealizedPnL').className = `text-3xl font-black font-mono tracking-tight ${totalUnrealizedPnL >= 0 ? 'text-emerald-400' : 'text-rose-400'}`;
         }
     </script>
 </body>
