@@ -3,36 +3,67 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>QuantumTrader | V8.6 LIVE CHART</title>
+    <title>QuantumTrader | V8.5 PRO</title>
     
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#020617">
     <meta name="apple-mobile-web-app-capable" content="yes">
-    
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/2933/2933116.png">
+
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
 
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://unpkg.com/lightweight-charts/dist/lightweight-charts.standalone.production.js"></script>
-    
     <script type="text/javascript" src="https://s3.tradingview.com/tv.js"></script>
-
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;700;800&display=swap" rel="stylesheet">
     
     <style>
-        body { background-color: #020617; color: #f8fafc; font-family: 'Inter', sans-serif; }
+        body { 
+            background-color: #020617; 
+            color: #f8fafc; 
+            font-family: 'Inter', sans-serif;
+            background-image: 
+                radial-gradient(circle at 15% 50%, rgba(14, 165, 233, 0.04), transparent 40%),
+                radial-gradient(circle at 85% 30%, rgba(168, 85, 247, 0.04), transparent 40%);
+        }
         .font-mono { font-family: 'JetBrains Mono', monospace; }
-        .glass-card { background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(24px); border: 1px solid rgba(255, 255, 255, 0.05); border-radius: 16px; }
-        .input-ultra { background: rgba(2, 6, 23, 0.8); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 8px; padding: 10px 14px; color: white; width: 100%; outline: none; }
-        .input-ultra:focus { border-color: #38bdf8; }
-        .btn-ultra { background: linear-gradient(135deg, #0ea5e9 0%, #6366f1 50%, #a855f7 100%); color: white; font-weight: 700; padding: 14px; border-radius: 8px; }
+        
+        .glass-card { 
+            background: rgba(15, 23, 42, 0.85); 
+            backdrop-filter: blur(24px); 
+            border: 1px solid rgba(255, 255, 255, 0.05); 
+            box-shadow: 0 20px 50px -12px rgba(0, 0, 0, 0.5);
+            border-radius: 16px;
+        }
+
+        .input-ultra { 
+            background: rgba(2, 6, 23, 0.8); 
+            border: 1px solid rgba(255, 255, 255, 0.1); 
+            border-radius: 8px; 
+            padding: 10px 14px; 
+            color: white; 
+            width: 100%; 
+            outline: none; 
+            transition: all 0.2s ease; 
+        }
+        .input-ultra:focus { border-color: #38bdf8; box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.15); }
+
+        .btn-ultra { 
+            background: linear-gradient(135deg, #0ea5e9 0%, #6366f1 50%, #a855f7 100%); 
+            color: white; font-weight: 700; padding: 14px; border-radius: 8px; 
+            transition: all 0.3s ease; 
+        }
+        .btn-ultra:hover { transform: translateY(-2px); box-shadow: 0 10px 30px rgba(99, 102, 241, 0.4); }
+
         ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
         ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); border-radius: 10px; }
+        
         .live-glow { animation: pulseGlow 2s infinite; }
         @keyframes pulseGlow { 0% { box-shadow: 0 0 0 0 rgba(14, 165, 233, 0.4); } 70% { box-shadow: 0 0 0 6px rgba(14, 165, 233, 0); } 100% { box-shadow: 0 0 0 0 rgba(14, 165, 233, 0); } }
-        
-        /* Container for the live chart */
-        #tv_chart_container { position: absolute; top: 0; left: 0; width: 100%; height: 100%; padding-top: 3px; }
+        .sync-active-glow { animation: syncGlow 1.5s infinite; }
+        @keyframes syncGlow { 0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.5); } 70% { box-shadow: 0 0 0 8px rgba(16, 185, 129, 0); } 100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); } }
     </style>
 </head>
 <body class="p-4 md:p-8 min-h-screen">
@@ -40,13 +71,14 @@
     <div class="max-w-[1600px] mx-auto">
         <header class="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 border-b border-slate-800 pb-6 gap-4">
             <div>
-                <h1 class="text-3xl font-black tracking-tight">QUANTUM<span class="text-sky-400">TRADER</span> <span class="text-[10px] bg-emerald-500/10 text-emerald-400 px-2 rounded font-bold">V8.6 LIVE</span></h1>
-                <p class="text-xs text-slate-400 mt-2 uppercase font-mono">True Real-Time Engine</p>
+                <h1 class="text-3xl font-black tracking-tight">QUANTUM<span class="text-transparent bg-clip-text bg-gradient-to-r from-sky-400 to-indigo-500">TRADER</span> <span class="text-[10px] bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-2 py-0.5 rounded ml-2 align-middle font-bold">V8.5 PRO</span></h1>
+                <p class="text-xs text-slate-400 mt-2 uppercase tracking-widest font-mono">Real-Time Portfolio & Chart Engine</p>
             </div>
-            <div class="flex gap-3">
-                <button onclick="toggleView('main')" id="btnMain" class="text-xs font-bold bg-slate-800 text-white px-4 py-2 rounded-lg border-slate-700 shadow-inner">📊 Dashboard</button>
-                <button onclick="toggleView('grid')" id="btnGrid" class="text-xs font-bold text-slate-400 hover:text-white hover:bg-slate-800 px-4 py-2 rounded-lg border-transparent">🔲 Grid</button>
-                <button onclick="clearHistory()" class="text-xs font-semibold text-rose-400 border border-rose-950 px-4 py-2 rounded-lg">Wipe DB</button>
+            
+            <div class="flex flex-wrap gap-3">
+                <button onclick="toggleView('main')" id="btnMain" class="text-xs font-bold bg-slate-800 text-white px-4 py-2 rounded-lg transition border border-slate-700 shadow-inner">📊 Dashboard</button>
+                <button onclick="toggleView('grid')" id="btnGrid" class="text-xs font-bold text-slate-400 hover:text-white hover:bg-slate-800 px-4 py-2 rounded-lg transition border border-transparent">🔲 Multi-Chart Grid</button>
+                <button onclick="clearHistory()" class="text-xs font-semibold text-rose-400 hover:text-white border border-rose-950 hover:bg-rose-900/50 px-4 py-2 rounded-lg transition ml-2">Wipe Database</button>
             </div>
         </header>
 
@@ -56,18 +88,25 @@
                     <h2 class="text-xs font-bold text-slate-300 uppercase tracking-widest mb-6 flex items-center gap-2"><span class="w-2 h-2 rounded-full bg-emerald-400 live-glow"></span> Execute Order</h2>
                     <form id="tradeForm" class="space-y-4">
                         <div class="grid grid-cols-3 gap-2">
-                            <div class="col-span-2"><label class="block text-[10px] text-slate-400 mb-1">SYMBOL</label><input type="text" id="symbol" list="tickers" required class="input-ultra font-mono text-sm uppercase"><datalist id="tickers"></datalist></div>
-                            <div><label class="block text-[10px] text-slate-400 mb-1">TAG</label><select id="tag" class="input-ultra text-xs h-[42px] p-1"><option>Scalp</option><option>Intraday</option><option>Swing</option></select></div>
+                            <div class="col-span-2">
+                                <label class="block text-[10px] font-semibold text-slate-400 mb-1 uppercase">Symbol</label>
+                                <input type="text" id="symbol" list="tickers" placeholder="RELIANCE" required autocomplete="off" class="input-ultra font-mono text-sm uppercase">
+                                <datalist id="tickers"></datalist>
+                            </div>
+                            <div>
+                                <label class="block text-[10px] font-semibold text-slate-400 mb-1 uppercase">Tag</label>
+                                <select id="tag" class="input-ultra text-xs h-[42px] p-1"><option value="Scalp">Scalp</option><option value="Intraday">Intraday</option><option value="Swing">Swing</option></select>
+                            </div>
                         </div>
                         <div class="grid grid-cols-2 gap-3">
-                            <div><label class="block text-[10px] text-slate-400 mb-1">DIRECTION</label><select id="type" class="input-ultra text-sm"><option value="LONG">LONG</option><option value="SHORT">SHORT</option></select></div>
-                            <div><label class="block text-[10px] text-slate-400 mb-1">QUANTITY</label><input type="number" id="qty" required step="any" class="input-ultra font-mono text-sm"></div>
+                            <div><label class="block text-[10px] font-semibold text-slate-400 mb-1 uppercase">Direction</label><select id="type" class="input-ultra text-sm cursor-pointer"><option value="LONG">LONG (Buy)</option><option value="SHORT">SHORT (Sell)</option></select></div>
+                            <div><label class="block text-[10px] font-semibold text-slate-400 mb-1 uppercase">Quantity</label><input type="number" id="qty" placeholder="1" required step="any" min="0.001" class="input-ultra font-mono text-sm"></div>
                         </div>
                         <div class="p-4 bg-slate-900/50 rounded-lg border border-slate-800 space-y-4">
-                            <div><label class="block text-[10px] text-slate-400 mb-1">ENTRY PRICE</label><input type="number" id="entry" required step="any" class="input-ultra font-mono text-sm text-sky-400"></div>
+                            <div><label class="block text-[10px] font-semibold text-slate-400 mb-1 uppercase">Entry Price</label><input type="number" id="entry" placeholder="0.00" required step="any" class="input-ultra font-mono text-sm text-sky-400"></div>
                             <div class="grid grid-cols-2 gap-3">
-                                <div><label class="block text-[10px] text-rose-400 mb-1">SL (%)</label><input type="number" id="sl_pct" step="any" class="input-ultra font-mono text-xs border-rose-900/30 bg-rose-950/10"></div>
-                                <div><label class="block text-[10px] text-emerald-400 mb-1">TARGET</label><input type="number" id="exit" step="any" class="input-ultra font-mono text-xs border-emerald-900/30 bg-emerald-950/10"></div>
+                                <div><label class="block text-[10px] font-semibold text-rose-400 mb-1 uppercase">Stop Loss (%)</label><input type="number" id="sl_pct" placeholder="e.g. 1.5" step="any" class="input-ultra font-mono text-xs border-rose-900/30 bg-rose-950/10"></div>
+                                <div><label class="block text-[10px] font-semibold text-emerald-400 mb-1 uppercase">Target</label><input type="number" id="exit" placeholder="0.00" step="any" class="input-ultra font-mono text-xs border-emerald-900/30 bg-emerald-950/10"></div>
                             </div>
                         </div>
                         <button type="submit" class="w-full btn-ultra text-xs uppercase tracking-widest mt-2">Place Order</button>
@@ -77,30 +116,47 @@
 
             <div class="xl:col-span-9 space-y-6">
                 <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                    <div class="glass-card p-5"><h3 class="text-[10px] text-slate-400 uppercase font-semibold">Realized P&L</h3><p id="netPnL" class="text-3xl font-black mt-2 font-mono text-emerald-400">₹0.00</p></div>
-                    <div class="glass-card p-5"><h3 class="text-[10px] text-slate-400 uppercase font-semibold">Win Rate</h3><p id="winRateTxt" class="text-3xl font-black mt-2 font-mono text-sky-400">0%</p></div>
-                    <div class="glass-card p-5"><h3 class="text-[10px] text-slate-400 uppercase font-semibold">Total Invested</h3><p id="totalInvested" class="text-3xl font-black mt-2 font-mono text-indigo-400">₹0.00</p></div>
-                    <div class="glass-card p-5"><h3 class="text-[10px] text-slate-400 uppercase font-semibold">Unrealized P&L</h3><p id="unrealizedPnL" class="text-3xl font-black mt-2 font-mono text-slate-500">₹0.00</p></div>
+                    <div class="glass-card p-5"><h3 class="text-[10px] text-slate-400 uppercase font-semibold">Realized P&L</h3><p id="netPnL" class="text-3xl font-black mt-2 font-mono tracking-tight">₹0.00</p></div>
+                    <div class="glass-card p-5"><h3 class="text-[10px] text-slate-400 uppercase font-semibold">Win Rate</h3><p id="winRateTxt" class="text-3xl font-black mt-2 font-mono tracking-tight text-sky-400">0%</p></div>
+                    <div class="glass-card p-5"><h3 class="text-[10px] text-slate-400 uppercase font-semibold">Total Invested</h3><p id="totalInvested" class="text-3xl font-black mt-2 font-mono tracking-tight text-indigo-400">₹0.00</p></div>
+                    <div class="glass-card p-5"><h3 class="text-[10px] text-slate-400 uppercase font-semibold">Unrealized P&L</h3><p id="unrealizedPnL" class="text-3xl font-black mt-2 font-mono tracking-tight text-slate-500">₹0.00</p></div>
                 </div>
 
                 <div class="glass-card overflow-hidden h-[450px] relative">
-                    <div class="absolute top-0 left-0 w-full h-[3px] bg-gradient-to-r from-sky-400 to-indigo-500 z-20"></div>
-                    <div id="chartSymbolLabel" class="absolute top-4 left-4 z-20 text-2xl font-black font-mono text-white/50 tracking-tighter"></div>
-                    <div id="tv_chart_container"></div>
+                    <div class="absolute top-0 left-0 w-full h-[3px] bg-gradient-to-r from-sky-400 to-indigo-500 z-10"></div>
+                    <div id="tv_chart_container" class="w-full h-full"></div>
                 </div>
 
                 <div class="glass-card overflow-hidden border-sky-900/50">
                     <div class="flex justify-between items-center p-4 border-b border-slate-800 bg-sky-950/10">
-                        <h3 class="text-xs text-sky-400 font-bold uppercase flex items-center gap-2"><span class="w-2 h-2 rounded-full bg-sky-400 live-glow"></span> Active Positions</h3>
+                        <h3 class="text-xs text-sky-400 font-bold uppercase tracking-widest flex items-center gap-2"><span class="w-2 h-2 rounded-full bg-sky-400 live-glow"></span> Active Positions</h3>
                         <div class="flex gap-2">
-                            <button id="autoSyncBtn" onclick="toggleAutoSync()" class="text-[10px] bg-slate-800 text-slate-400 px-3 py-1.5 rounded uppercase font-bold border border-slate-700">Auto-Sync: OFF 🔴</button>
-                            <button onclick="triggerLiveFetch()" class="text-[10px] bg-sky-500/20 text-sky-300 px-3 py-1.5 rounded uppercase font-bold border border-sky-500/30">⚡ Sync Now</button>
+                            <button onclick="requestNotificationPermission()" class="text-[10px] bg-purple-500/20 hover:bg-purple-500/40 text-purple-300 px-3 py-1.5 rounded uppercase font-bold tracking-wider transition border border-purple-500/30">🔔 Allow Alerts</button>
+                            <button id="autoSyncBtn" onclick="toggleAutoSync()" class="text-[10px] bg-slate-800 hover:bg-slate-700 text-slate-400 px-3 py-1.5 rounded uppercase font-bold tracking-wider transition border border-slate-700">Auto-Sync: OFF 🔴</button>
+                            <button onclick="fetchLiveCMPFromPython()" class="text-[10px] bg-sky-500/20 hover:bg-sky-500/40 text-sky-300 px-3 py-1.5 rounded uppercase font-bold tracking-wider transition border border-sky-500/30">⚡ Sync Now</button>
                         </div>
                     </div>
                     <div class="overflow-x-auto">
                         <table class="w-full text-left text-sm whitespace-nowrap">
-                            <thead><tr class="bg-slate-900/30 text-[10px] text-slate-400 uppercase border-b border-slate-800"><th class="py-3 px-5">Symbol</th><th class="py-3 px-5 text-center">Qty</th><th class="py-3 px-5">Entry & SL</th><th class="py-3 px-5">Invested (₹)</th><th class="py-3 px-5 text-center">Live CMP (₹)</th><th class="py-3 px-5 text-right">P&L (%)</th><th class="py-3 px-5 text-center">Action</th></tr></thead>
+                            <thead>
+                                <tr class="bg-slate-900/30 text-[10px] text-slate-400 uppercase tracking-widest border-b border-slate-800">
+                                    <th class="py-3 px-5">Symbol</th><th class="py-3 px-5 text-center">Qty</th><th class="py-3 px-5">Type</th>
+                                    <th class="py-3 px-5">Entry & SL</th><th class="py-3 px-5">Invested (₹)</th><th class="py-3 px-5 text-center">Live CMP (₹)</th>
+                                    <th class="py-3 px-5 text-right">Unrealized P&L</th><th class="py-3 px-5 text-center">Action</th>
+                                </tr>
+                            </thead>
                             <tbody id="openPositionsBody" class="divide-y divide-slate-800/40"></tbody>
+                        </table>
+                        <div id="noOpenState" class="p-8 text-center hidden bg-slate-900/20"><p class="text-slate-500 font-mono text-xs">No active positions running.</p></div>
+                    </div>
+                </div>
+
+                <div class="glass-card overflow-hidden">
+                    <div class="p-4 border-b border-slate-800 bg-slate-900/30"><h3 class="text-xs text-slate-300 font-semibold uppercase tracking-widest">Closed Trade Ledger</h3></div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left text-sm whitespace-nowrap">
+                            <thead><tr class="bg-slate-900/50 text-[10px] text-slate-400 uppercase tracking-widest border-b border-slate-800"><th class="py-3 px-5">Timeline & Asset</th><th class="py-3 px-5 text-center">Qty</th><th class="py-3 px-5">Setup</th><th class="py-3 px-5">Prices</th><th class="py-3 px-5 text-right">Realized P&L</th><th class="py-3 px-5 text-center">Delete</th></tr></thead>
+                            <tbody id="closedTradeBody" class="divide-y divide-slate-800/40"></tbody>
                         </table>
                     </div>
                 </div>
@@ -108,16 +164,51 @@
         </div>
 
         <div id="view-grid" class="hidden transition-all duration-300">
-            <div class="mb-4"><h2 class="text-xl font-bold text-white flex items-center gap-3"><span class="w-3 h-3 rounded-full bg-sky-500 live-glow"></span> Open Positions Grid</h2></div>
+            <div class="mb-4 flex items-center justify-between"><h2 class="text-xl font-bold text-white flex items-center gap-3"><span class="w-3 h-3 rounded-full bg-sky-500 live-glow"></span> Open Positions Grid</h2></div>
             <div id="multiChartContainer" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6"></div>
         </div>
     </div>
 
-    <div id="closeModal" class="fixed inset-0 bg-black/80 hidden items-center justify-center z-50">
-        <div class="glass-card p-6 w-full max-w-sm"><input type="hidden" id="modalTradeId"><input type="number" id="modalExitPrice" placeholder="Final Exit Price" class="input-ultra mb-4"><button onclick="submitCloseTrade()" class="w-full bg-purple-600 p-2 rounded text-white font-bold">Confirm Exit</button></div>
+    <div id="closeModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm hidden items-center justify-center z-50">
+        <div class="glass-card p-6 w-full max-w-sm">
+            <h3 class="text-sm font-bold text-white mb-4 uppercase tracking-wider" id="modalTitle">Close Position</h3>
+            <input type="hidden" id="modalTradeId">
+            <label class="block text-[10px] font-semibold text-slate-400 mb-1 uppercase">Final Exit Price</label>
+            <input type="number" id="modalExitPrice" placeholder="0.00" step="any" class="input-ultra font-mono mb-4 text-purple-400">
+            <div class="flex gap-3">
+                <button onclick="closeModalFunc()" class="flex-1 bg-slate-800 text-white text-xs py-3 rounded-lg font-bold">Cancel</button>
+                <button onclick="submitCloseTrade()" class="flex-1 bg-purple-600 hover:bg-purple-500 text-white text-xs py-3 rounded-lg font-bold">Confirm Exit</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="editModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm hidden items-center justify-center z-50">
+        <div class="glass-card p-6 w-full max-w-sm border-sky-500/30">
+            <h3 class="text-sm font-bold text-sky-400 mb-4 uppercase tracking-wider flex items-center gap-2" id="editModalTitle">✏️ Edit Position</h3>
+            <input type="hidden" id="editTradeId">
+            <div class="space-y-4 mb-5">
+                <div class="grid grid-cols-2 gap-3">
+                    <div><label class="block text-[10px] font-semibold text-slate-400 mb-1 uppercase">Quantity</label><input type="number" id="editQty" step="any" required class="input-ultra font-mono text-sm"></div>
+                    <div><label class="block text-[10px] font-semibold text-slate-400 mb-1 uppercase">Entry Price</label><input type="number" id="editEntry" step="any" required class="input-ultra font-mono text-sm text-sky-400"></div>
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div><label class="block text-[10px] font-semibold text-rose-400 mb-1 uppercase">SL Price (₹)</label><input type="number" id="editSL" step="any" class="input-ultra font-mono text-xs border-rose-900/30 bg-rose-950/10 text-rose-300"></div>
+                    <div><label class="block text-[10px] font-semibold text-emerald-400 mb-1 uppercase">Target (₹)</label><input type="number" id="editExit" step="any" class="input-ultra font-mono text-xs border-emerald-900/30 bg-emerald-950/10 text-emerald-300"></div>
+                </div>
+            </div>
+            <div class="flex gap-3">
+                <button onclick="closeEditModal()" class="flex-1 bg-slate-800 text-white text-xs py-3 rounded-lg font-bold">Cancel</button>
+                <button onclick="submitEditTrade()" class="flex-1 bg-sky-600 hover:bg-sky-500 text-white text-xs py-3 rounded-lg font-bold">Save Changes</button>
+            </div>
+        </div>
     </div>
 
     <script>
+        // ================= SERVICE WORKER =================
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('sw.js').then(() => console.log("PWA SW Registered!")).catch(e => console.error("SW Error:", e));
+        }
+
         // ================= FIREBASE =================
         const FIREBASE_DB_URL = "https://quantum-tracker-6fe30-default-rtdb.firebaseio.com";
         firebase.initializeApp({ databaseURL: FIREBASE_DB_URL });
@@ -127,173 +218,258 @@
         let autoSyncTimer = null;
         let isAutoSyncing = false;
         let currentView = 'main';
+        const alertSound = new Audio('https://actions.google.com/sounds/v1/alarms/beep_short.ogg');
 
-        // Tickers
-        const popularStocks = ["NIFTY", "BANKNIFTY", "SENSEX", "RELIANCE", "TCS", "HDFCBANK", "INFY"];
-        popularStocks.forEach(s => document.getElementById('tickers').innerHTML += `<option value="${s}">`);
+        // Populate Tickers
+        const popularStocks = ["NIFTY", "BANKNIFTY", "FINNIFTY", "SENSEX", "RELIANCE", "TCS", "HDFCBANK", "ICICIBANK", "INFY", "SBIN", "ITC", "TATAMOTORS", "ZOMATO"];
+        const datalist = document.getElementById('tickers');
+        popularStocks.forEach(s => datalist.innerHTML += `<option value="${s}">`);
 
-        fbDatabase.ref('trades').on('value', (s) => { trades = s.val() || []; renderUI(); });
+        // Cloud Sync Listener
+        fbDatabase.ref('trades').on('value', (snapshot) => {
+            trades = snapshot.val() || [];
+            renderUI();
+            if(currentView === 'grid') renderMultiCharts();
+        });
+
         function saveData() { fbDatabase.ref('trades').set(trades); }
 
-        // ================= REAL-TIME CHART LOGIC (Lightweight Charts) =================
-        let mainChart = null;
-        let candleSeries = null;
-        let currentChartSymbol = '';
-        let lastCandle = null;
-
-        async function loadMainChart(symbol) {
-            currentChartSymbol = symbol.toUpperCase();
-            document.getElementById('chartSymbolLabel').innerText = currentChartSymbol;
-            
-            const container = document.getElementById('tv_chart_container');
-            container.innerHTML = ''; // Clear old chart
-            
-            // Create Chart
-            mainChart = LightweightCharts.createChart(container, {
-                layout: { background: { type: 'solid', color: 'transparent' }, textColor: '#cbd5e1' },
-                grid: { vertLines: { color: 'rgba(30, 41, 59, 0.4)' }, horzLines: { color: 'rgba(30, 41, 59, 0.4)' } },
-                crosshair: { mode: LightweightCharts.CrosshairMode.Normal },
-                timeScale: { timeVisible: true, secondsVisible: false, borderColor: 'rgba(30, 41, 59, 0.8)' },
-                rightPriceScale: { borderColor: 'rgba(30, 41, 59, 0.8)' }
-            });
-            
-            candleSeries = mainChart.addCandlestickSeries({
-                upColor: '#10b981', downColor: '#ef4444', borderVisible: false, wickUpColor: '#10b981', wickDownColor: '#ef4444'
-            });
-
-            // Resize observer to keep chart responsive
-            new ResizeObserver(entries => {
-                if(entries.length === 0 || entries[0].target !== container) return;
-                mainChart.applyOptions({ height: entries[0].contentRect.height, width: entries[0].contentRect.width });
-            }).observe(container);
-
-            // Fetch History from Local Python Server
-            try {
-                const res = await fetch(`http://127.0.0.1:5000/api/history/${currentChartSymbol}`);
-                const json = await res.json();
-                if(json.status === 'success' && json.data.length > 0) {
-                    candleSeries.setData(json.data);
-                    lastCandle = json.data[json.data.length - 1]; // Save the last candle for live updates
-                }
-            } catch(e) { console.error("Failed to fetch historical data. Is the Python server running?"); }
+        // ================= TRADINGVIEW WIDGET LOGIC =================
+        function formatTVSymbol(symbol) {
+            if (symbol === "NIFTY") return "BSE:NIFTY50";
+            if (symbol === "BANKNIFTY") return "BSE:BANKNIFTY";
+            if (symbol === "SENSEX") return "BSE:SENSEX";
+            if (symbol.includes("USDT") || symbol.includes("BTC")) return "BINANCE:" + symbol;
+            if (!symbol.includes(":")) return "BSE:" + symbol;
+            return symbol;
         }
 
-        // Initialize with NIFTY
+        function loadMainChart(symbol) {
+            document.getElementById('tv_chart_container').innerHTML = ''; 
+            new TradingView.widget({
+                "autosize": true, "symbol": formatTVSymbol(symbol), "interval": "D", "timezone": "Asia/Kolkata", 
+                "theme": "dark", "style": "1", "locale": "in", "enable_publishing": false, 
+                "backgroundColor": "#0f172a", "gridColor": "#1e293b", "hide_top_toolbar": false, 
+                "hide_side_toolbar": false, "allow_symbol_change": true, "hide_legend": false, 
+                "save_image": false, "container_id": "tv_chart_container"
+            });
+        }
+
+        // On Page Load - Show Initial Chart
         window.onload = () => { loadMainChart("NIFTY"); };
 
-        // ================= LIVE FETCH ENGINE =================
-        async function triggerLiveFetch() {
-            // 1. Update Open Trades
+        function toggleView(view) {
+            currentView = view;
+            const btnMain = document.getElementById('btnMain');
+            const btnGrid = document.getElementById('btnGrid');
+            const viewMain = document.getElementById('view-main');
+            const viewGrid = document.getElementById('view-grid');
+
+            if(view === 'grid') {
+                viewMain.classList.add('hidden'); viewGrid.classList.remove('hidden');
+                btnGrid.classList.replace('text-slate-400', 'text-white'); btnGrid.classList.add('bg-slate-800', 'shadow-inner');
+                btnMain.classList.remove('bg-slate-800', 'shadow-inner', 'text-white'); btnMain.classList.add('text-slate-400');
+                renderMultiCharts();
+            } else {
+                viewGrid.classList.add('hidden'); viewMain.classList.remove('hidden');
+                btnMain.classList.replace('text-slate-400', 'text-white'); btnMain.classList.add('bg-slate-800', 'shadow-inner');
+                btnGrid.classList.remove('bg-slate-800', 'shadow-inner', 'text-white'); btnGrid.classList.add('text-slate-400');
+            }
+        }
+
+        function renderMultiCharts() {
+            const container = document.getElementById('multiChartContainer');
+            container.innerHTML = ''; 
             const openTrades = trades.filter(t => t.status === 'OPEN');
+            if(openTrades.length === 0) {
+                container.innerHTML = `<div class="col-span-full glass-card p-12 text-center text-slate-500 font-mono">No active positions to display in grid.</div>`; return;
+            }
+            openTrades.forEach(t => {
+                const chartId = 'tv_mini_' + t.id;
+                const liveCMP = t.liveCMP || t.entry; const invested = t.qty * t.entry;
+                const unrealized = t.type === 'LONG' ? (liveCMP - t.entry) * t.qty : (t.entry - liveCMP) * t.qty;
+                const profitPct = ((liveCMP - t.entry) / t.entry) * 100;
+                const finalPct = t.type === 'LONG' ? profitPct : -profitPct;
+                const pnlColor = unrealized >= 0 ? 'text-emerald-400' : 'text-rose-400';
+                
+                const card = document.createElement('div');
+                card.className = 'glass-card flex flex-col h-[350px] overflow-hidden border-t-2 border-t-sky-500';
+                card.innerHTML = `
+                    <div class="px-3 py-2 bg-slate-900/50 border-b border-slate-800 flex justify-between items-center">
+                        <span class="font-bold text-white font-mono text-sm">${t.symbol}</span>
+                        <span class="text-[10px] font-bold px-2 py-0.5 rounded ${t.type === 'LONG' ? 'bg-emerald-500/20 text-emerald-400' : 'bg-rose-500/20 text-rose-400'}">${t.type} x${t.qty}</span>
+                    </div>
+                    <div class="px-3 py-2 bg-slate-950 border-b border-slate-800 flex flex-col font-mono tracking-tight">
+                        <div class="flex justify-between items-center w-full">
+                            <span class="text-slate-300 font-bold text-[13px]">Used: ₹${invested.toLocaleString('en-IN', {maximumFractionDigits:0})}</span>
+                            <span class="font-black ${pnlColor} text-[15px]">${unrealized >= 0 ? '+' : ''}₹${unrealized.toFixed(2)}</span>
+                        </div>
+                        <div class="text-right text-[11px] font-bold ${pnlColor}">(${finalPct >= 0 ? '+' : ''}${finalPct.toFixed(2)}%)</div>
+                    </div>
+                    <div id="${chartId}" class="w-full flex-1"></div>`;
+                container.appendChild(card);
+                
+                new TradingView.widget({ "autosize": true, "symbol": formatTVSymbol(t.symbol), "interval": "D", "timezone": "Asia/Kolkata", "theme": "dark", "style": "1", "locale": "in", "enable_publishing": false, "backgroundColor": "#0f172a", "hide_top_toolbar": true, "hide_side_toolbar": true, "hide_legend": true, "save_image": false, "container_id": chartId });
+            });
+        }
+
+        // ================= ALERTS & LOGIC =================
+        function checkStopLoss(trade) {
+            if (trade.sl && !trade.slHit) {
+                if ((trade.type === 'LONG' && trade.liveCMP <= trade.sl) || (trade.type === 'SHORT' && trade.liveCMP >= trade.sl)) {
+                    trade.slHit = true; saveData();
+                    const title = `🚨 SL HIT: ${trade.symbol}`; const body = `Type: ${trade.type} | SL: ₹${trade.sl.toFixed(2)} | Current: ₹${trade.liveCMP}`;
+                    alertSound.play().catch(e => console.log("Audio play blocked"));
+                    if ("Notification" in window && Notification.permission === "granted") {
+                        navigator.serviceWorker.ready.then(reg => { reg.showNotification(title, { body: body, icon: 'https://cdn-icons-png.flaticon.com/512/2933/2933116.png', vibrate: [200, 100, 200], requireInteraction: true }); });
+                    } else { alert(`${title}\n\n${body}`); }
+                }
+            }
+        }
+
+        function requestNotificationPermission() {
+            if (!("Notification" in window)) alert("Browser does not support notifications.");
+            else if (Notification.permission === "granted") alert("Alerts enabled!");
+            else if (Notification.permission !== "denied") Notification.requestPermission().then(p => { if(p === "granted") alert("Alerts enabled!"); });
+        }
+
+        document.getElementById('tradeForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const symbol = document.getElementById('symbol').value.toUpperCase().trim();
+            const tag = document.getElementById('tag').value; const type = document.getElementById('type').value;
+            const qty = parseFloat(document.getElementById('qty').value); const entry = parseFloat(document.getElementById('entry').value);
+            const slPctVal = document.getElementById('sl_pct').value;
+            let sl = null; if(slPctVal !== "" && !isNaN(slPctVal)) { sl = type === 'LONG' ? entry - (entry * parseFloat(slPctVal) / 100) : entry + (entry * parseFloat(slPctVal) / 100); }
+            const exitVal = document.getElementById('exit').value; const isClosed = exitVal !== "" && !isNaN(exitVal);
+            const exit = isClosed ? parseFloat(exitVal) : null;
+            const now = new Date(); const dateStr = now.toLocaleDateString('en-GB', {day:'2-digit', month:'short'}) + ' ' + now.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+            let pnl = isClosed ? (type === 'LONG' ? (exit - entry) * qty : (entry - exit) * qty) : 0;
+
+            trades.unshift({ id: Date.now(), date: dateStr, symbol, tag, type, qty, entry, sl, exit, pnl, status: isClosed ? 'CLOSED' : 'OPEN', liveCMP: entry, slHit: false });
+            saveData(); loadMainChart(symbol); this.reset(); document.getElementById('symbol').focus();
+        });
+
+        function clearHistory() { if(confirm("Wipe entire database?")) { trades = []; saveData(); } }
+        function deleteTrade(id) { if(confirm("Delete this trade?")) { trades = trades.filter(t => t.id !== id); saveData(); } }
+
+        function updateLiveCMP(id, newCMP) {
+            const val = parseFloat(newCMP); if(isNaN(val)) return;
+            const idx = trades.findIndex(t => t.id === id);
+            if(idx > -1) { trades[idx].liveCMP = val; checkStopLoss(trades[idx]); saveData(); }
+        }
+
+        async function fetchLiveCMPFromPython() {
+            const openTrades = trades.filter(t => t.status === 'OPEN'); if(openTrades.length === 0) return;
             for(let t of openTrades) {
                 try {
-                    const res = await fetch(`http://127.0.0.1:5000/api/price/${t.symbol}`);
+                    let sym = t.symbol.includes('.') ? t.symbol : t.symbol + '.NS';
+                    const res = await fetch(`https://quantum-trader-rlme.onrender.com/api/price/${sym}`);
                     const data = await res.json();
-                    if(data.status === 'success') { t.liveCMP = data.price; }
-                } catch(e) {}
+                    if(data.status === 'success') { t.liveCMP = data.price; checkStopLoss(t); }
+                } catch(e) { console.log(`Fetch error ${t.symbol}`); }
             }
             saveData();
-
-            // 2. Update Live Chart independently
-            if(currentChartSymbol && lastCandle && candleSeries) {
-                try {
-                    const res = await fetch(`http://127.0.0.1:5000/api/price/${currentChartSymbol}`);
-                    const data = await res.json();
-                    if(data.status === 'success') {
-                        const livePrice = data.price;
-                        // Dynamically move the candle
-                        lastCandle.close = livePrice;
-                        if(livePrice > lastCandle.high) lastCandle.high = livePrice;
-                        if(livePrice < lastCandle.low) lastCandle.low = livePrice;
-                        candleSeries.update(lastCandle);
-                    }
-                } catch(e) {}
-            }
         }
 
         function toggleAutoSync() {
             isAutoSyncing = !isAutoSyncing; const btn = document.getElementById('autoSyncBtn');
             if(isAutoSyncing) {
                 btn.innerHTML = "Auto-Sync: ON 🟢"; btn.className = "text-[10px] bg-emerald-500/20 text-emerald-300 px-3 py-1.5 rounded uppercase font-bold border border-emerald-500/40 sync-active-glow";
-                triggerLiveFetch(); autoSyncTimer = setInterval(triggerLiveFetch, 10000); // 10 seconds refresh
+                fetchLiveCMPFromPython(); autoSyncTimer = setInterval(fetchLiveCMPFromPython, 15000);
             } else {
                 btn.innerHTML = "Auto-Sync: OFF 🔴"; btn.className = "text-[10px] bg-slate-800 text-slate-400 px-3 py-1.5 rounded uppercase font-bold border border-slate-700";
                 clearInterval(autoSyncTimer);
             }
         }
 
-        // ================= FORM & UI LOGIC =================
-        document.getElementById('tradeForm').addEventListener('submit', function(e) {
-            e.preventDefault();
-            const symbol = document.getElementById('symbol').value.toUpperCase();
-            const type = document.getElementById('type').value;
-            const qty = parseFloat(document.getElementById('qty').value);
-            const entry = parseFloat(document.getElementById('entry').value);
-            trades.unshift({ id: Date.now(), symbol, type, qty, entry, slHit: false, status: 'OPEN', liveCMP: entry, pnl: 0 });
-            saveData(); loadMainChart(symbol); this.reset();
-        });
-
-        function updateLiveCMP(id, newCMP) {
-            const t = trades.find(t => t.id === id);
-            if(t && !isNaN(newCMP)) { t.liveCMP = parseFloat(newCMP); saveData(); }
+        // Modals
+        function openEditModal(id) {
+            const t = trades.find(t => t.id === id); if(!t) return;
+            document.getElementById('editTradeId').value = id; document.getElementById('editQty').value = t.qty;
+            document.getElementById('editEntry').value = t.entry; document.getElementById('editSL').value = t.sl || '';
+            document.getElementById('editExit').value = t.exit || ''; document.getElementById('editModal').style.display = 'flex';
         }
-
-        function openCloseModal(id, sym) { document.getElementById('modalTradeId').value = id; document.getElementById('closeModal').style.display = 'flex'; }
-        function submitCloseTrade() {
-            const id = parseInt(document.getElementById('modalTradeId').value); const exit = parseFloat(document.getElementById('modalExitPrice').value);
-            const t = trades.find(t => t.id === id);
-            if(t && !isNaN(exit)) {
-                t.exit = exit; t.status = 'CLOSED'; t.pnl = t.type === 'LONG' ? (exit - t.entry)*t.qty : (t.entry - exit)*t.qty;
-                saveData(); document.getElementById('closeModal').style.display = 'none';
+        function closeEditModal() { document.getElementById('editModal').style.display = 'none'; }
+        function submitEditTrade() {
+            const id = parseInt(document.getElementById('editTradeId').value); const t = trades.find(t => t.id === id);
+            if(t) {
+                t.qty = parseFloat(document.getElementById('editQty').value) || t.qty;
+                t.entry = parseFloat(document.getElementById('editEntry').value) || t.entry;
+                t.sl = document.getElementById('editSL').value ? parseFloat(document.getElementById('editSL').value) : null;
+                t.exit = document.getElementById('editExit').value ? parseFloat(document.getElementById('editExit').value) : null;
+                t.slHit = false; saveData(); closeEditModal();
             }
         }
 
-        function clearHistory() { if(confirm("Wipe DB?")) { trades = []; saveData(); } }
-        function deleteTrade(id) { trades = trades.filter(t => t.id !== id); saveData(); }
-        function toggleView(v) { 
-            currentView = v; 
-            document.getElementById('view-main').classList.toggle('hidden', v==='grid');
-            document.getElementById('view-grid').classList.toggle('hidden', v==='main');
-            if(v === 'grid') renderMultiCharts();
+        function openCloseModal(id, symbol) {
+            document.getElementById('modalTradeId').value = id; document.getElementById('modalTitle').innerText = `Close ${symbol}`; document.getElementById('closeModal').style.display = 'flex';
+        }
+        function closeModalFunc() { document.getElementById('closeModal').style.display = 'none'; }
+        function submitCloseTrade() {
+            const id = parseInt(document.getElementById('modalTradeId').value); const exit = parseFloat(document.getElementById('modalExitPrice').value);
+            if(isNaN(exit)) return alert("Invalid exit price");
+            const t = trades.find(t => t.id === id);
+            if(t) {
+                t.exit = exit; t.status = 'CLOSED'; t.pnl = t.type === 'LONG' ? (exit - t.entry) * t.qty : (t.entry - exit) * t.qty;
+                saveData(); closeModalFunc(); document.getElementById('modalExitPrice').value = '';
+            }
         }
 
+        // ================= UI RENDER =================
         function renderUI() {
-            const body = document.getElementById('openPositionsBody'); body.innerHTML = '';
-            let unPnL = 0, realPnL = 0, inv = 0;
+            const openBody = document.getElementById('openPositionsBody'); const closedBody = document.getElementById('closedTradeBody');
+            openBody.innerHTML = ''; closedBody.innerHTML = '';
+            let totalRealizedPnL = 0, totalWins = 0, closedCount = 0, totalInvestedAmt = 0, totalUnrealizedPnL = 0;
             
-            trades.filter(t => t.status === 'OPEN').forEach(t => {
-                const cmp = t.liveCMP || t.entry; const used = t.qty * t.entry; inv += used;
-                let pnl = t.type === 'LONG' ? (cmp - t.entry)*t.qty : (t.entry - cmp)*t.qty; unPnL += pnl;
-                const pct = ((cmp - t.entry)/t.entry)*100 * (t.type === 'LONG'?1:-1);
-                const col = pnl >= 0 ? 'text-emerald-400' : 'text-rose-400';
-                
-                body.innerHTML += `<tr class="hover:bg-slate-800/50">
-                    <td class="py-3 px-5 font-bold cursor-pointer hover:text-sky-400" onclick="loadMainChart('${t.symbol}')">${t.symbol}</td>
-                    <td class="py-3 px-5 text-center">${t.qty}</td>
-                    <td class="py-3 px-5">₹${t.entry.toFixed(2)}</td>
-                    <td class="py-3 px-5">₹${used.toFixed(0)}</td>
-                    <td class="py-3 px-5"><input type="number" value="${cmp}" onchange="updateLiveCMP(${t.id}, this.value)" class="w-20 bg-slate-900 border border-slate-700 p-1 text-center rounded text-xs"></td>
-                    <td class="py-3 px-5 text-right font-bold ${col}">${pnl>=0?'+':''}₹${pnl.toFixed(2)} <br><span class="text-[9px]">(${pct>=0?'+':''}${pct.toFixed(2)}%)</span></td>
-                    <td class="py-3 px-5 text-center"><button onclick="openCloseModal(${t.id}, '${t.symbol}')" class="text-purple-400 hover:text-purple-300 text-xs font-bold border border-purple-500/30 px-2 py-1 rounded">Exit</button></td>
-                </tr>`;
-            });
-            
-            trades.filter(t => t.status === 'CLOSED').forEach(t => realPnL += t.pnl);
-            
-            document.getElementById('netPnL').innerText = `₹${realPnL.toFixed(2)}`;
-            document.getElementById('totalInvested').innerText = `₹${inv.toFixed(0)}`;
-            document.getElementById('unrealizedPnL').innerText = `${unPnL>=0?'+':''}₹${unPnL.toFixed(2)}`;
-            document.getElementById('unrealizedPnL').className = `text-3xl font-black mt-2 font-mono ${unPnL>=0?'text-emerald-400':'text-rose-400'}`;
-        }
+            const openTrades = trades.filter(t => t.status === 'OPEN'); const closedTrades = trades.filter(t => t.status === 'CLOSED');
 
-        // Grid charts (Classic TV)
-        function renderMultiCharts() {
-            const cont = document.getElementById('multiChartContainer'); cont.innerHTML = '';
-            trades.filter(t => t.status === 'OPEN').forEach(t => {
-                const id = 'tv_mini_' + t.id;
-                cont.innerHTML += `<div class="glass-card h-[300px] border-t border-sky-500"><div class="p-2 flex justify-between"><span class="font-bold cursor-pointer" onclick="loadMainChart('${t.symbol}'); toggleView('main');">${t.symbol}</span><span>${t.type} x${t.qty}</span></div><div id="${id}" class="h-full"></div></div>`;
-                setTimeout(() => { new TradingView.widget({"autosize":true,"symbol":formatTVSymbol(t.symbol),"interval":"D","theme":"dark","hide_top_toolbar":true,"hide_legend":true,"save_image":false,"container_id":id}); }, 100);
+            if(openTrades.length === 0) { document.getElementById('noOpenState').style.display = 'block'; } 
+            else {
+                document.getElementById('noOpenState').style.display = 'none';
+                openTrades.forEach(t => {
+                    const invested = t.qty * t.entry; totalInvestedAmt += invested;
+                    const liveCMP = t.liveCMP || t.entry;
+                    let unrealized = t.type === 'LONG' ? (liveCMP - t.entry) * t.qty : (t.entry - liveCMP) * t.qty; totalUnrealizedPnL += unrealized;
+                    const profitPct = ((liveCMP - t.entry) / t.entry) * 100; const finalPct = t.type === 'LONG' ? profitPct : -profitPct;
+                    const pnlColor = unrealized >= 0 ? 'text-emerald-400' : 'text-rose-400';
+                    const typeBadge = t.type === 'LONG' ? `<span class="bg-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded text-[10px] font-bold">L</span>` : `<span class="bg-rose-500/20 text-rose-400 px-2 py-0.5 rounded text-[10px] font-bold">S</span>`;
+                    const slBadge = t.sl ? `<br><span class="inline-block mt-1 text-[10px] border px-1.5 py-0.5 rounded font-bold ${t.slHit ? "text-rose-100 bg-rose-600 border-rose-500" : "text-rose-400 bg-rose-500/10 border-rose-500/20"}">${t.slHit ? "SL HIT!" : 'SL: ₹'+t.sl.toFixed(2)}</span>` : '';
+
+                    openBody.innerHTML += `<tr class="hover:bg-slate-800/50 transition-colors">
+                        <td class="py-3 px-5 font-bold font-mono text-white text-sm">${t.symbol}</td>
+                        <td class="py-3 px-5 text-center font-black font-mono text-sky-400 text-base">${t.qty}</td>
+                        <td class="py-3 px-5">${typeBadge} <span class="text-[9px] ml-1 text-slate-400">${t.tag}</span></td>
+                        <td class="py-3 px-5 font-mono text-xs text-sky-300">₹${t.entry.toFixed(2)}${slBadge}</td>
+                        <td class="py-3 px-5 font-mono text-xs text-slate-300">₹${invested.toLocaleString('en-IN', {maximumFractionDigits:0})}</td>
+                        <td class="py-3 px-5 text-center"><input type="number" step="any" value="${liveCMP}" onchange="updateLiveCMP(${t.id}, this.value)" class="w-20 bg-slate-900 border border-slate-700 rounded p-1 text-xs font-mono text-center text-white outline-none"></td>
+                        <td class="py-3 px-5 text-right font-bold font-mono ${pnlColor}"><div>${unrealized >= 0 ? '+' : ''}₹${unrealized.toFixed(2)}</div><div class="text-[10px] opacity-80">(${finalPct >= 0 ? '+' : ''}${finalPct.toFixed(2)}%)</div></td>
+                        <td class="py-3 px-5 text-center flex justify-center items-center gap-1.5">
+                            <button onclick="loadMainChart('${t.symbol}')" title="Chart" class="bg-sky-500/20 text-sky-300 px-2 py-1.5 rounded text-[10px] font-bold uppercase transition hover:bg-sky-500/40">📉</button>
+                            <button onclick="openEditModal(${t.id})" title="Edit" class="bg-blue-600/20 text-blue-400 px-2 py-1.5 rounded text-[10px] font-bold uppercase transition hover:bg-blue-600/40">✏️</button>
+                            <button onclick="openCloseModal(${t.id}, '${t.symbol}')" title="Close" class="bg-purple-600/20 text-purple-400 px-2 py-1.5 rounded text-[10px] font-bold uppercase transition hover:bg-purple-600/40">Exit</button>
+                            <button onclick="deleteTrade(${t.id})" title="Delete" class="text-rose-500 hover:bg-rose-500/20 px-2 rounded text-sm font-bold">×</button>
+                        </td></tr>`;
+                });
+            }
+
+            closedTrades.forEach(t => {
+                totalRealizedPnL += t.pnl; closedCount++; if(t.pnl > 0) totalWins++;
+                const pnlColor = t.pnl >= 0 ? 'text-emerald-400' : 'text-rose-400';
+                closedBody.innerHTML += `<tr class="hover:bg-slate-800/20 opacity-80">
+                    <td class="py-3 px-5"><div class="font-bold text-white font-mono text-sm">${t.symbol}</div><div class="text-[9px] text-slate-500">${t.date}</div></td>
+                    <td class="py-3 px-5 text-center font-black font-mono text-sky-400 text-base">${t.qty}</td>
+                    <td class="py-3 px-5"><span class="${t.type==='LONG'?'text-emerald-400':'text-rose-400'} text-[9px] font-bold">${t.type}</span></td>
+                    <td class="py-3 px-5 font-mono text-xs"><span class="text-slate-400">₹${t.entry.toFixed(2)}</span> → <span class="text-slate-400">₹${t.exit.toFixed(2)}</span></td>
+                    <td class="py-3 px-5 font-bold font-mono text-right ${pnlColor} text-sm">${t.pnl>=0?'+':''}₹${t.pnl.toFixed(2)}</td>
+                    <td class="py-3 px-5 text-center"><button onclick="deleteTrade(${t.id})" class="text-slate-600 hover:text-rose-500 text-lg font-bold px-2 rounded">×</button></td></tr>`;
             });
+
+            document.getElementById('netPnL').innerText = (totalRealizedPnL >= 0 ? '+' : '') + '₹' + totalRealizedPnL.toLocaleString('en-IN', {maximumFractionDigits:2});
+            document.getElementById('netPnL').className = `text-3xl font-black mt-2 font-mono tracking-tight ${totalRealizedPnL >= 0 ? 'text-emerald-400' : 'text-rose-400'}`;
+            document.getElementById('winRateTxt').innerText = closedCount > 0 ? ((totalWins / closedCount) * 100).toFixed(1) + '%' : '0%';
+            document.getElementById('totalInvested').innerText = '₹' + totalInvestedAmt.toLocaleString('en-IN', {maximumFractionDigits:2});
+            document.getElementById('unrealizedPnL').innerText = (totalUnrealizedPnL >= 0 ? '+' : '') + '₹' + totalUnrealizedPnL.toLocaleString('en-IN', {maximumFractionDigits:2});
+            document.getElementById('unrealizedPnL').className = `text-3xl font-black mt-2 font-mono tracking-tight ${totalUnrealizedPnL >= 0 ? 'text-emerald-400' : 'text-rose-400'}`;
         }
     </script>
 </body>
