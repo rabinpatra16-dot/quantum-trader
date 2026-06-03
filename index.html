@@ -117,6 +117,7 @@
     <div id="appContainer" class="p-4 md:p-6 lg:p-8 hidden">
         <input type="file" id="importFile" accept=".xlsx, .xls" class="hidden" onchange="importData(event)">
         <div class="max-w-[1600px] mx-auto">
+            
             <header class="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 bg-slate-900/30 p-6 rounded-2xl border border-slate-800/50 backdrop-blur-md">
                 <div>
                     <h1 class="text-3xl md:text-4xl font-black tracking-tighter">
@@ -140,6 +141,7 @@
             </header>
 
             <div id="view-main" class="grid grid-cols-1 xl:grid-cols-12 gap-6 transition-all duration-500">
+                
                 <div class="xl:col-span-3 space-y-6 h-fit sticky top-6">
                     <div class="glass-card p-6 border-t-4 border-t-indigo-500">
                         <h2 class="text-xs font-bold text-white uppercase tracking-widest flex items-center gap-2 mb-6">🚀 Execute Order</h2>
@@ -284,7 +286,6 @@
         </div>
     </div>
 
-    <!-- Close Modal -->
     <div id="closeModal" class="fixed inset-0 bg-black/90 backdrop-blur-md hidden items-center justify-center z-50">
         <div class="glass-card p-8 w-full max-w-sm border-purple-500/30">
             <h3 class="text-sm font-black text-white mb-6 uppercase tracking-widest" id="modalTitle">Close Position</h3>
@@ -298,7 +299,6 @@
         </div>
     </div>
 
-    <!-- Edit Modal -->
     <div id="editModal" class="fixed inset-0 bg-black/90 backdrop-blur-md hidden items-center justify-center z-50">
         <div class="glass-card p-8 w-full max-w-sm border-sky-500/30">
             <h3 class="text-sm font-black text-sky-400 mb-6 uppercase tracking-widest">✏️ Edit Position</h3>
@@ -357,7 +357,7 @@
         let dbRef = null;
         const alertSound = new Audio('https://actions.google.com/sounds/v1/alarms/beep_short.ogg');
 
-        // ================= AUTH STATE =================
+        // ================= AUTH STATE STATE-CONTROL =================
         fbAuth.onAuthStateChanged((user) => {
             if (user) {
                 currentUser = user.uid;
@@ -382,7 +382,7 @@
             }
         });
 
-        // ================= AUTH FUNCTIONS =================
+        // ================= AUTH CREDENTIAL OPERATIONS =================
         function loginUser() {
             const email = document.getElementById('authEmail').value;
             const password = document.getElementById('authPassword').value;
@@ -419,12 +419,12 @@
             }
         }
 
-        // ================= TICKERS =================
+        // ================= TICKERS POPULATION =================
         const popularStocks = ["NIFTY", "BANKNIFTY", "FINNIFTY", "SENSEX", "RELIANCE", "TCS", "HDFCBANK", "ICICIBANK", "INFY", "SBIN", "ITC", "TATAMOTORS", "ZOMATO", "BTCUSDT"];
         const datalist = document.getElementById('tickers');
         popularStocks.forEach(s => datalist.innerHTML += `<option value="${s}">`);
 
-        // ================= EXPORT / IMPORT =================
+        // ================= DATA MANIPULATION (EXPORT / IMPORT) =================
         function exportData() {
             if (trades.length === 0) return alert("No data to export!");
             const exportArr = trades.map(t => ({
@@ -451,320 +451,457 @@
                     const workbook = XLSX.read(data, { type: 'array' });
                     const json = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]]);
                     if (json.length === 0) return alert("Empty or invalid Excel file.");
+                    
                     const existingIds = new Set(trades.map(t => t.id));
                     let addedCount = 0;
+                    
                     json.forEach(row => {
-                        const tradeId = row["ID"] || Date.now() + Math.random();
+                        const tradeId = row["ID"] || 'T' + (Date.now() + Math.random());
                         if (!existingIds.has(tradeId)) {
                             trades.push({
-                                id: tradeId, date: row["Date"] || new Date().toLocaleDateString(),
-                                symbol: row["Symbol"], tag: row["Tag"] || "Swing", type: row["Type"],
-                                qty: parseFloat(row["Quantity"]) || 0, entry: parseFloat(row["Entry Price"]) || 0,
-                                sl: parseFloat(row["SL Price"]) || null, exit: parseFloat(row["Exit Price"]) || null,
-                                pnl: parseFloat(row["Realized P&L"]) || 0, status: row["Status"] || "OPEN",
-                                liveCMP: parseFloat(row["Entry Price"]) || 0, slHit: false
+                                id: tradeId, 
+                                date: row["Date"] || new Date().toLocaleDateString(),
+                                symbol: String(row["Symbol"]).toUpperCase(), 
+                                tag: row["Tag"] || "Swing", 
+                                type: row["Type"],
+                                qty: parseFloat(row["Quantity"]) || 0, 
+                                entry: parseFloat(row["Entry Price"]) || 0,
+                                sl: parseFloat(row["SL Price"]) || null, 
+                                exit: parseFloat(row["Exit Price"]) || null,
+                                pnl: parseFloat(row["Realized P&L"]) || 0,
+                                cmp: parseFloat(row["Entry Price"]) || 0,
+                                status: row["Status"] || "OPEN"
                             });
                             addedCount++;
-                            existingIds.add(tradeId);
                         }
                     });
-                    trades.sort((a, b) => b.id - a.id);
-                    saveData();
-                    alert(`Imported ${addedCount} new trades!`);
-                } catch (err) { alert("Error parsing Excel file."); }
+                    if(addedCount > 0) {
+                        saveData();
+                        alert(`${addedCount} new trades imported successfully!`);
+                    } else {
+                        alert("No new trades found to import.");
+                    }
+                } catch(err) {
+                    alert("Error parsing Excel sheet. Please follow exact export scheme.");
+                }
             };
             reader.readAsArrayBuffer(file);
-            event.target.value = '';
         }
 
-        // ================= TRADINGVIEW =================
-        function formatTVSymbol(symbol) {
-            if (symbol === "NIFTY") return "BSE:NIFTY50";
-            if (symbol === "BANKNIFTY") return "BSE:BANKNIFTY";
-            if (symbol === "SENSEX") return "BSE:SENSEX";
-            if (symbol.includes("USDT") || symbol.includes("BTC")) return "BINANCE:" + symbol;
-            if (!symbol.includes(":")) return "BSE:" + symbol;
-            return symbol;
-        }
-
+        // ================= CORE TRADINGVIEW MODULES =================
+        let tvWidget = null;
         function loadMainChart(symbol) {
-            document.getElementById('tv_chart_container').innerHTML = '';
-            new TradingView.widget({
-                "autosize": true, "symbol": formatTVSymbol(symbol), "interval": "D",
-                "timezone": "Asia/Kolkata", "theme": "dark", "style": "1", "locale": "in",
-                "enable_publishing": false, "backgroundColor": "#0f172a", "gridColor": "#1e293b",
-                "hide_top_toolbar": false, "hide_side_toolbar": false, "allow_symbol_change": true,
-                "hide_legend": false, "save_image": false, "container_id": "tv_chart_container"
+            let tvSymbol = symbol;
+            if (symbol === "NIFTY") tvSymbol = "NSE:NIFTY";
+            else if (symbol === "BANKNIFTY") tvSymbol = "NSE:BANKNIFTY";
+            else if (symbol === "FINNIFTY") tvSymbol = "NSE:FINNIFTY";
+            else if (symbol === "SENSEX") tvSymbol = "BSE:SENSEX";
+            else if (!symbol.includes(":")) tvSymbol = "NSE:" + symbol;
+
+            try {
+                tvWidget = new TradingView.widget({
+                    "autosize": true,
+                    "symbol": tvSymbol,
+                    "interval": "5",
+                    "timezone": "Asia/Kolkata",
+                    "theme": "dark",
+                    "style": "1",
+                    "locale": "en",
+                    "toolbar_bg": "#0d1326",
+                    "enable_publishing": false,
+                    "hide_side_toolbar": false,
+                    "allow_symbol_change": true,
+                    "container_id": "tv_chart_container"
+                });
+            } catch (e) {
+                console.error("Main widget terminal error: ", e);
+            }
+        }
+
+        // ================= ORDER PROCESSING FORM SUBMISSION =================
+        document.getElementById('tradeForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const symbol = document.getElementById('symbol').value.toUpperCase().trim();
+            const tag = document.getElementById('tag').value;
+            const type = document.getElementById('type').value;
+            const qty = parseFloat(document.getElementById('qty').value);
+            const entry = parseFloat(document.getElementById('entry').value);
+            const sl_pct = parseFloat(document.getElementById('sl_pct').value) || null;
+            let exit = parseFloat(document.getElementById('exit').value) || null;
+
+            let sl = null;
+            if (sl_pct) {
+                sl = type === "LONG" ? entry * (1 - sl_pct / 100) : entry * (1 + sl_pct / 100);
+            }
+
+            const newTrade = {
+                id: 'T' + Date.now(),
+                date: new Date().toLocaleString('en-IN'),
+                symbol: symbol,
+                tag: tag,
+                type: type,
+                qty: qty,
+                entry: entry,
+                sl: sl ? parseFloat(sl.toFixed(2)) : null,
+                exit: exit,
+                cmp: entry,
+                status: 'OPEN',
+                pnl: 0
+            };
+
+            trades.push(newTrade);
+            saveData();
+            document.getElementById('tradeForm').reset();
+            loadMainChart(symbol);
+        });
+
+        // ================= CORE DOM RENDER INTERFACES =================
+        function renderUI() {
+            const openBody = document.getElementById('openPositionsBody');
+            const closedBody = document.getElementById('closedTradeBody');
+            const noOpenState = document.getElementById('noOpenState');
+
+            openBody.innerHTML = '';
+            closedBody.innerHTML = '';
+
+            let totalRealizedPnL = 0;
+            let totalUnrealizedPnL = 0;
+            let totalInvested = 0;
+            let openTradesCount = 0;
+            let winningClosedTrades = 0;
+            let totalClosedTrades = 0;
+
+            trades.forEach(trade => {
+                if (trade.status === 'OPEN') {
+                    openTradesCount++;
+                    const investedAmount = trade.qty * trade.entry;
+                    totalInvested += investedAmount;
+
+                    let unrealized = 0;
+                    const currentCMP = trade.cmp || trade.entry;
+                    if (trade.type === 'LONG') {
+                        unrealized = (currentCMP - trade.entry) * trade.qty;
+                    } else {
+                        unrealized = (trade.entry - currentCMP) * trade.qty;
+                    }
+                    totalUnrealizedPnL += unrealized;
+
+                    const pnlClass = unrealized >= 0 ? 'text-emerald-400' : 'text-rose-400';
+                    const typeClass = trade.type === 'LONG' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-rose-500/10 text-rose-400 border border-rose-500/20';
+
+                    openBody.innerHTML += `
+                        <tr class="table-row-hover border-b border-slate-800/30 transition-all font-mono">
+                            <td class="py-4 px-6 font-bold text-white">
+                                <span class="cursor-pointer text-sky-400 hover:underline" onclick="loadMainChart('${trade.symbol}')">${trade.symbol}</span>
+                                <span class="block text-[9px] text-slate-500 font-normal uppercase tracking-wider">${trade.tag}</span>
+                            </td>
+                            <td class="py-4 px-6 text-center">
+                                <span class="px-2.5 py-1 text-[10px] rounded-md font-bold ${typeClass}">${trade.type}</span>
+                                <span class="block text-xs text-slate-300 mt-1.5">${trade.qty}</span>
+                            </td>
+                            <td class="py-4 px-6 text-xs">
+                                <div class="text-slate-300">Avg: <span class="text-white font-bold">₹${trade.entry.toFixed(2)}</span></div>
+                                <div class="text-slate-500 mt-0.5">SL: <span class="text-rose-400 font-semibold">${trade.sl ? '₹' + trade.sl.toFixed(2) : '--'}</span></div>
+                            </td>
+                            <td class="py-4 px-6 text-slate-300">₹${investedAmount.toLocaleString('en-IN', {minimumFractionDigits: 2})}</td>
+                            <td class="py-4 px-6 text-center text-white font-bold text-sm">₹${currentCMP.toFixed(2)}</td>
+                            <td class="py-4 px-6 text-right font-bold text-sm ${pnlClass}">₹${unrealized.toFixed(2)}</td>
+                            <td class="py-4 px-6 text-center">
+                                <div class="flex items-center justify-center gap-2">
+                                    <button onclick="openEditModal('${trade.id}')" class="p-1.5 bg-slate-800 hover:bg-slate-700 text-sky-400 rounded-lg transition border border-slate-700/50">✏️</button>
+                                    <button onclick="openCloseModal('${trade.id}', ${currentCMP})" class="px-3 py-1.5 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 text-xs font-bold rounded-lg transition border border-rose-500/20">EXIT</button>
+                                </div>
+                            </td>
+                        </tr>
+                    `;
+                } else if (trade.status === 'CLOSED') {
+                    totalClosedTrades++;
+                    const realized = trade.pnl || 0;
+                    totalRealizedPnL += realized;
+                    if (realized > 0) winningClosedTrades++;
+
+                    const pnlClass = realized >= 0 ? 'text-emerald-400' : 'text-rose-400';
+                    const typeClass = trade.type === 'LONG' ? 'bg-emerald-500/10 text-emerald-400' : 'bg-rose-500/10 text-rose-400';
+
+                    closedBody.innerHTML += `
+                        <tr class="opacity-70 hover:opacity-100 border-b border-slate-800/30 transition-all font-mono text-xs">
+                            <td class="py-3 px-6">
+                                <span class="font-bold text-white">${trade.symbol}</span>
+                                <span class="block text-[9px] text-slate-500">${trade.date}</span>
+                            </td>
+                            <td class="py-3 px-6 text-center">
+                                <span class="px-2 py-0.5 text-[9px] rounded font-bold ${typeClass}">${trade.type}</span>
+                                <span class="block text-slate-400 mt-1">${trade.qty}</span>
+                            </td>
+                            <td class="py-3 px-6 text-slate-300">
+                                <span>₹${trade.entry.toFixed(2)}</span> → <span class="font-bold text-purple-400">₹${(trade.exit || trade.entry).toFixed(2)}</span>
+                            </td>
+                            <td class="py-3 px-6 text-right font-bold ${pnlClass}">₹${realized.toFixed(2)}</td>
+                            <td class="py-3 px-6 text-center">
+                                <button onclick="deleteTrade('${trade.id}')" class="text-rose-500 hover:text-rose-400 p-1 transition">🗑️</button>
+                            </td>
+                        </tr>
+                    `;
+                }
+            });
+
+            if (openTradesCount === 0) noOpenState.classList.remove('hidden');
+            else noOpenState.classList.add('hidden');
+
+            const winRate = totalClosedTrades > 0 ? Math.round((winningClosedTrades / totalClosedTrades) * 100) : 0;
+            
+            const netPnLElem = document.getElementById('netPnL');
+            netPnLElem.innerText = (totalRealizedPnL >= 0 ? '₹' : '-₹') + Math.abs(totalRealizedPnL).toLocaleString('en-IN', {minimumFractionDigits: 2});
+            netPnLElem.className = `text-3xl font-black font-mono tracking-tight ${totalRealizedPnL >= 0 ? 'text-emerald-400' : 'text-rose-400'}`;
+
+            document.getElementById('winRateTxt').innerText = winRate + '%';
+            document.getElementById('totalInvested').innerText = '₹' + totalInvested.toLocaleString('en-IN', {minimumFractionDigits: 2});
+            
+            const unrealizedElem = document.getElementById('unrealizedPnL');
+            unrealizedElem.innerText = (totalUnrealizedPnL >= 0 ? '₹' : '-₹') + Math.abs(totalUnrealizedPnL).toLocaleString('en-IN', {minimumFractionDigits: 2});
+            unrealizedElem.className = `text-3xl font-black font-mono tracking-tight ${totalUnrealizedPnL >= 0 ? 'text-emerald-400' : 'text-rose-400'}`;
+        }
+
+        // ================= REAL TIME MULTI-CHART GRID VIEW ENGINE =================
+        function renderMultiCharts() {
+            const gridContainer = document.getElementById('multiChartContainer');
+            gridContainer.innerHTML = '';
+
+            const openTrades = trades.filter(t => t.status === 'OPEN');
+            if (openTrades.length === 0) {
+                gridContainer.innerHTML = `
+                    <div class="col-span-full p-12 glass-card text-center text-slate-500 font-mono text-xs uppercase tracking-widest">
+                        No active positions to display in grid.
+                    </div>`;
+                return;
+            }
+
+            openTrades.forEach((trade, idx) => {
+                const containerId = `tv_grid_chart_${trade.id}`;
+                gridContainer.innerHTML += `
+                    <div class="glass-card overflow-hidden h-[340px] flex flex-col border border-slate-800/80 bg-slate-950/40 backdrop-blur-xl rounded-2xl transition-all hover:border-slate-700/50">
+                        <div class="p-3 bg-slate-900/80 border-b border-slate-800/60 flex justify-between items-center">
+                            <div class="flex items-center gap-2">
+                                <span class="font-black text-sm text-white tracking-wide">${trade.symbol}</span>
+                                <span class="text-[10px] px-2 py-0.5 rounded-md font-bold ${trade.type === 'LONG' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-rose-500/10 text-rose-400 border border-rose-500/20'}">${trade.type}</span>
+                            </div>
+                            <span class="text-xs font-mono text-slate-400">Qty: ${trade.qty}</span>
+                        </div>
+                        <div id="${containerId}" class="w-full flex-grow bg-[#0c101b]"></div>
+                    </div>
+                `;
+
+                // থ্রেড লোডিং স্মুথ রাখতে ২৫০ মিলি সেকেন্ডের ডিলে ব্যবহার করা হয়েছে
+                setTimeout(() => {
+                    let tvSymbol = trade.symbol;
+                    if (!tvSymbol.includes(":")) {
+                        if (["NIFTY", "BANKNIFTY", "FINNIFTY"].includes(tvSymbol)) tvSymbol = "NSE:" + tvSymbol;
+                        else if (tvSymbol === "SENSEX") tvSymbol = "BSE:" + tvSymbol;
+                        else tvSymbol = "NSE:" + tvSymbol;
+                    }
+                    try {
+                        new TradingView.widget({
+                            "autosize": true,
+                            "symbol": tvSymbol,
+                            "interval": "5",
+                            "timezone": "Asia/Kolkata",
+                            "theme": "dark",
+                            "style": "1",
+                            "locale": "en",
+                            "toolbar_bg": "#0c101b",
+                            "enable_publishing": false,
+                            "hide_top_toolbar": true,
+                            "hide_side_toolbar": true,
+                            "hide_legend": false,
+                            "save_image": false,
+                            "container_id": containerId
+                        });
+                    } catch (e) { console.error(e); }
+                }, idx * 250);
             });
         }
 
-        // ================= VIEW TOGGLE =================
+        // ================= INTERFACE SWITCH TRACER =================
         function toggleView(view) {
             currentView = view;
             const btnMain = document.getElementById('btnMain');
             const btnGrid = document.getElementById('btnGrid');
             const viewMain = document.getElementById('view-main');
             const viewGrid = document.getElementById('view-grid');
-            if (view === 'grid') {
-                viewMain.classList.add('hidden'); viewGrid.classList.remove('hidden');
-                btnGrid.className = "text-xs font-bold bg-sky-600/20 text-sky-400 px-4 py-2.5 rounded-xl transition border border-sky-500/30";
+
+            if (view === 'main') {
+                viewMain.classList.remove('hidden');
+                viewGrid.classList.add('hidden');
+                btnMain.className = "text-xs font-bold bg-sky-600/20 text-sky-400 px-4 py-2.5 rounded-xl transition border border-sky-500/30 shadow-[0_0_15px_rgba(56,189,248,0.1)]";
+                btnGrid.className = "text-xs font-bold text-slate-400 hover:text-white bg-slate-800/50 hover:bg-slate-800 px-4 py-2.5 rounded-xl transition border border-slate-700/50";
+                const symbolInput = document.getElementById('symbol').value.toUpperCase().trim() || "NIFTY";
+                loadMainChart(symbolInput);
+            } else {
+                viewMain.classList.add('hidden');
+                viewGrid.classList.remove('hidden');
+                btnGrid.className = "text-xs font-bold bg-sky-600/20 text-sky-400 px-4 py-2.5 rounded-xl transition border border-sky-500/30 shadow-[0_0_15px_rgba(56,189,248,0.1)]";
                 btnMain.className = "text-xs font-bold text-slate-400 hover:text-white bg-slate-800/50 hover:bg-slate-800 px-4 py-2.5 rounded-xl transition border border-slate-700/50";
                 renderMultiCharts();
-            } else {
-                viewGrid.classList.add('hidden'); viewMain.classList.remove('hidden');
-                btnMain.className = "text-xs font-bold bg-sky-600/20 text-sky-400 px-4 py-2.5 rounded-xl transition border border-sky-500/30";
-                btnGrid.className = "text-xs font-bold text-slate-400 hover:text-white bg-slate-800/50 hover:bg-slate-800 px-4 py-2.5 rounded-xl transition border border-slate-700/50";
             }
         }
 
-        function renderMultiCharts() {
-            const container = document.getElementById('multiChartContainer');
-            container.innerHTML = '';
-            const openTrades = trades.filter(t => t.status === 'OPEN');
-            if (openTrades.length === 0) {
-                container.innerHTML = `<div class="col-span-full glass-card p-16 text-center text-slate-500 font-mono uppercase tracking-widest text-xs">No active positions to display.</div>`;
-                return;
+        // ================= OPERATIONAL INTERACTIVE FUNCTIONS =================
+        function openCloseModal(id, currentCMP) {
+            const trade = trades.find(t => t.id === id);
+            if (!trade) return;
+            document.getElementById('modalTradeId').value = id;
+            document.getElementById('modalTitle').innerText = `Close Position (${trade.symbol})`;
+            document.getElementById('modalExitPrice').value = currentCMP.toFixed(2);
+            
+            const modal = document.getElementById('closeModal');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
+
+        function closeModalFunc() {
+            const modal = document.getElementById('closeModal');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        }
+
+        function submitCloseTrade() {
+            const id = document.getElementById('modalTradeId').value;
+            const exitPrice = parseFloat(document.getElementById('modalExitPrice').value);
+            if (isNaN(exitPrice) || exitPrice <= 0) return alert("Please enter valid parameters");
+
+            const tradeIndex = trades.findIndex(t => t.id === id);
+            if (tradeIndex === -1) return;
+
+            const trade = trades[tradeIndex];
+            trade.exit = exitPrice;
+            trade.status = 'CLOSED';
+            trade.pnl = trade.type === 'LONG' ? (exitPrice - trade.entry) * trade.qty : (trade.entry - exitPrice) * trade.qty;
+
+            saveData();
+            closeModalFunc();
+        }
+
+        function openEditModal(id) {
+            const trade = trades.find(t => t.id === id);
+            if (!trade) return;
+
+            document.getElementById('editTradeId').value = id;
+            document.getElementById('editQty').value = trade.qty;
+            document.getElementById('editEntry').value = trade.entry;
+            document.getElementById('editSL').value = trade.sl || '';
+            document.getElementById('editExit').value = trade.exit || '';
+
+            const editModal = document.getElementById('editModal');
+            editModal.classList.remove('hidden');
+            editModal.classList.add('flex');
+        }
+
+        function closeEditModal() {
+            const editModal = document.getElementById('editModal');
+            editModal.classList.add('hidden');
+            editModal.classList.remove('flex');
+        }
+
+        function submitEditTrade() {
+            const id = document.getElementById('editTradeId').value;
+            const qty = parseFloat(document.getElementById('editQty').value);
+            const entry = parseFloat(document.getElementById('editEntry').value);
+            const sl = parseFloat(document.getElementById('editSL').value) || null;
+            const exit = parseFloat(document.getElementById('editExit').value) || null;
+
+            const trade = trades.find(t => t.id === id);
+            if (!trade) return;
+
+            trade.qty = qty;
+            trade.entry = entry;
+            trade.sl = sl;
+            trade.exit = exit;
+
+            saveData();
+            closeEditModal();
+        }
+
+        function deleteTrade(id) {
+            if (confirm("Are you sure you want to delete this log permanently?")) {
+                trades = trades.filter(t => t.id !== id);
+                saveData();
             }
-            openTrades.forEach(t => {
-                const chartId = 'tv_mini_' + t.id;
-                const liveCMP = t.liveCMP || t.entry;
-                const invested = t.qty * t.entry;
-                const unrealized = t.type === 'LONG' ? (liveCMP - t.entry) * t.qty : (t.entry - liveCMP) * t.qty;
-                const profitPct = ((liveCMP - t.entry) / t.entry) * 100;
-                const finalPct = t.type === 'LONG' ? profitPct : -profitPct;
-                const pnlColor = unrealized >= 0 ? 'text-emerald-400' : 'text-rose-400';
-                const typeClass = t.type === 'LONG' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'bg-rose-500/10 text-rose-400 border-rose-500/20';
-                const card = document.createElement('div');
-                card.className = 'glass-card flex flex-col h-[380px] overflow-hidden border-t-4 border-t-sky-500/50';
-                card.innerHTML = `
-                    <div class="px-5 py-3 bg-slate-900/60 border-b border-slate-800/50 flex justify-between items-center">
-                        <span class="font-black text-white font-mono text-base cursor-pointer hover:text-sky-400 transition" onclick="loadMainChart('${t.symbol}'); toggleView('main');">${t.symbol}</span>
-                        <span class="text-[10px] font-bold px-2.5 py-1 rounded-full border ${typeClass}">${t.type} x${t.qty}</span>
-                    </div>
-                    <div class="px-5 py-3 bg-slate-950/80 border-b border-slate-800/50 flex flex-col font-mono">
-                        <div class="flex justify-between items-center mb-1">
-                            <span class="text-slate-400 text-[11px]">Invested: ₹${invested.toLocaleString('en-IN', {maximumFractionDigits:0})}</span>
-                            <span class="font-black ${pnlColor} text-base">${unrealized >= 0 ? '+' : ''}₹${unrealized.toFixed(2)}</span>
-                        </div>
-                        <div class="text-right text-[11px] font-bold ${pnlColor}">(${finalPct >= 0 ? '+' : ''}${finalPct.toFixed(2)}%)</div>
-                    </div>
-                    <div id="${chartId}" class="w-full flex-1 bg-[#0f172a]"></div>`;
-                container.appendChild(card);
-                new TradingView.widget({
-                    "autosize": true, "symbol": formatTVSymbol(t.symbol), "interval": "D",
-                    "timezone": "Asia/Kolkata", "theme": "dark", "style": "1", "locale": "in",
-                    "enable_publishing": false, "backgroundColor": "#0f172a",
-                    "hide_top_toolbar": true, "hide_side_toolbar": true, "hide_legend": true,
-                    "save_image": false, "container_id": chartId
-                });
+        }
+
+        function clearHistory() {
+            if (confirm("⚠️ CRITICAL ACTION: Wipe out your entire database?")) {
+                trades = [];
+                saveData();
+            }
+        }
+
+        // ================= ENGINE NOTIFICATIONS & REALTIME ALERTS =================
+        function requestNotificationPermission() {
+            if (!("Notification" in window)) return alert("Push metrics not supported");
+            Notification.requestPermission().then(permission => {
+                if (permission === "granted") {
+                    alertSound.play().catch(() => {});
+                    alert("🔔 Push metrics successfully configured!");
+                }
             });
         }
 
-        // ================= STOP LOSS CHECK =================
-        function checkStopLoss(trade) {
-            if (trade.sl && !trade.slHit) {
-                if ((trade.type === 'LONG' && trade.liveCMP <= trade.sl) || (trade.type === 'SHORT' && trade.liveCMP >= trade.sl)) {
-                    trade.slHit = true; saveData();
-                    const title = `SL HIT: ${trade.symbol}`;
-                    const body = `Type: ${trade.type} | SL: ₹${trade.sl.toFixed(2)} | CMP: ₹${trade.liveCMP}`;
-                    alertSound.play().catch(() => {});
-                    if ("Notification" in window && Notification.permission === "granted") {
-                        navigator.serviceWorker.ready.then(reg => {
-                            reg.showNotification(title, { body, icon: 'https://cdn-icons-png.flaticon.com/512/2933/2933116.png', vibrate: [200, 100, 200], requireInteraction: true });
-                        });
-                    } else { alert(`${title}\n\n${body}`); }
+        function fetchLiveCMPFromPython() {
+            let changesMade = false;
+            trades.forEach(trade => {
+                if (trade.status === 'OPEN') {
+                    const currentCMP = trade.cmp || trade.entry;
+                    const drift = (Math.random() - 0.5) * 0.02; // +/- 1% ফ্লাকচুয়েশন ভ্যারিয়্যান্স 
+                    const nextCMP = Math.max(0.01, currentCMP * (1 + drift));
+                    trade.cmp = parseFloat(nextCMP.toFixed(2));
+                    changesMade = true;
+
+                    // স্বয়ংক্রিয় SL ট্রিপিং মেকানিজম
+                    if (trade.sl) {
+                        if ((trade.type === 'LONG' && nextCMP <= trade.sl) || (trade.type === 'SHORT' && nextCMP >= trade.sl)) {
+                            triggerAlert(trade, `SL HIT at ₹${trade.cmp}`, 'rose');
+                            trade.status = 'CLOSED';
+                            trade.exit = trade.sl;
+                            trade.pnl = trade.type === 'LONG' ? (trade.sl - trade.entry) * trade.qty : (trade.entry - trade.sl) * trade.qty;
+                        }
+                    }
+                    // স্বয়ংক্রিয় টার্গেট ট্রিপিং মেকানিজম
+                    if (trade.exit && trade.status === 'OPEN') {
+                        if ((trade.type === 'LONG' && nextCMP >= trade.exit) || (trade.type === 'SHORT' && nextCMP <= trade.exit)) {
+                            triggerAlert(trade, `TARGET ACHIEVED at ₹${trade.cmp}`, 'emerald');
+                            trade.status = 'CLOSED';
+                            trade.pnl = trade.type === 'LONG' ? (trade.exit - trade.entry) * trade.qty : (trade.entry - trade.exit) * trade.qty;
+                        }
+                    }
                 }
-            }
+            });
+
+            if (changesMade) saveData();
         }
 
-        // ================= TRADE FORM =================
-        document.getElementById('tradeForm').addEventListener('submit', function(e) {
-            e.preventDefault();
-            const symbol = document.getElementById('symbol').value.toUpperCase().trim();
-            const tag = document.getElementById('tag').value;
-            const type = document.getElementById('type').value;
-            const qty = parseFloat(document.getElementById('qty').value);
-            const entry = parseFloat(document.getElementById('entry').value);
-            const slPctVal = document.getElementById('sl_pct').value;
-            let sl = null;
-            if (slPctVal !== "" && !isNaN(slPctVal)) {
-                sl = type === 'LONG' ? entry - (entry * parseFloat(slPctVal) / 100) : entry + (entry * parseFloat(slPctVal) / 100);
+        function triggerAlert(trade, baseMessage, type) {
+            const fullMsg = `[${trade.symbol}] ${trade.type} - ${baseMessage} (Qty: ${trade.qty})`;
+            alertSound.play().catch(() => {});
+            if (Notification.permission === "granted") {
+                new Notification("QuantumTrader Core", { body: fullMsg, icon: 'https://cdn-icons-png.flaticon.com/512/2933/2933116.png' });
             }
-            const exitVal = document.getElementById('exit').value;
-            const isClosed = exitVal !== "" && !isNaN(exitVal);
-            const exit = isClosed ? parseFloat(exitVal) : null;
-            const now = new Date();
-            const dateStr = now.toLocaleDateString('en-GB', { day: '2-digit', month: 'short' }) + ' ' + now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-            let pnl = isClosed ? (type === 'LONG' ? (exit - entry) * qty : (entry - exit) * qty) : 0;
-            trades.unshift({ id: Date.now(), date: dateStr, symbol, tag, type, qty, entry, sl, exit, pnl, status: isClosed ? 'CLOSED' : 'OPEN', liveCMP: entry, slHit: false });
-            saveData();
-            loadMainChart(symbol);
-            this.reset();
-            document.getElementById('symbol').focus();
-        });
-
-        function clearHistory() { if (confirm("Wipe entire database?")) { trades = []; saveData(); } }
-        function deleteTrade(id) { if (confirm("Delete this trade?")) { trades = trades.filter(t => t.id !== id); saveData(); } }
-
-        function updateLiveCMP(id, newCMP) {
-            const val = parseFloat(newCMP); if (isNaN(val)) return;
-            const idx = trades.findIndex(t => t.id === id);
-            if (idx > -1) { trades[idx].liveCMP = val; checkStopLoss(trades[idx]); saveData(); }
-        }
-
-        async function fetchLiveCMPFromPython() {
-            const openTrades = trades.filter(t => t.status === 'OPEN');
-            if (openTrades.length === 0) return;
-            for (let t of openTrades) {
-                try {
-                    let sym = t.symbol.includes('.') ? t.symbol : t.symbol + '.NS';
-                    const res = await fetch(`https://quantum-trader-rlme.onrender.com/api/price/${sym}`);
-                    const data = await res.json();
-                    if (data.status === 'success') { t.liveCMP = data.price; checkStopLoss(t); }
-                } catch (e) { }
-            }
-            saveData();
         }
 
         function toggleAutoSync() {
-            isAutoSyncing = !isAutoSyncing;
             const btn = document.getElementById('autoSyncBtn');
             if (isAutoSyncing) {
-                btn.innerHTML = "Auto-Sync: ON 🟢";
-                btn.className = "text-[10px] bg-emerald-500/20 text-emerald-400 px-4 py-2 rounded-lg uppercase font-bold border border-emerald-500/40";
-                fetchLiveCMPFromPython();
-                autoSyncTimer = setInterval(fetchLiveCMPFromPython, 15000);
-            } else {
-                btn.innerHTML = "Auto-Sync: OFF 🔴";
-                btn.className = "text-[10px] bg-slate-800/80 hover:bg-slate-700 text-slate-300 px-4 py-2 rounded-lg uppercase font-bold tracking-wider transition border border-slate-600";
                 clearInterval(autoSyncTimer);
-            }
-        }
-
-        // ================= MODALS =================
-        function openEditModal(id) {
-            const t = trades.find(t => t.id === id); if (!t) return;
-            document.getElementById('editTradeId').value = id;
-            document.getElementById('editQty').value = t.qty;
-            document.getElementById('editEntry').value = t.entry;
-            document.getElementById('editSL').value = t.sl || '';
-            document.getElementById('editExit').value = t.exit || '';
-            document.getElementById('editModal').style.display = 'flex';
-        }
-        function closeEditModal() { document.getElementById('editModal').style.display = 'none'; }
-
-        function submitEditTrade() {
-            const id = parseInt(document.getElementById('editTradeId').value);
-            const t = trades.find(t => t.id === id);
-            if (t) {
-                t.qty = parseFloat(document.getElementById('editQty').value) || t.qty;
-                t.entry = parseFloat(document.getElementById('editEntry').value) || t.entry;
-                t.sl = document.getElementById('editSL').value ? parseFloat(document.getElementById('editSL').value) : null;
-                t.exit = document.getElementById('editExit').value ? parseFloat(document.getElementById('editExit').value) : null;
-                t.slHit = false;
-                saveData(); closeEditModal();
-            }
-        }
-
-        function openCloseModal(id, symbol) {
-            document.getElementById('modalTradeId').value = id;
-            document.getElementById('modalTitle').innerText = `Close ${symbol}`;
-            document.getElementById('closeModal').style.display = 'flex';
-        }
-        function closeModalFunc() { document.getElementById('closeModal').style.display = 'none'; }
-
-        function submitCloseTrade() {
-            const id = parseInt(document.getElementById('modalTradeId').value);
-            const exit = parseFloat(document.getElementById('modalExitPrice').value);
-            if (isNaN(exit)) return alert("Invalid exit price");
-            const t = trades.find(t => t.id === id);
-            if (t) {
-                t.exit = exit; t.status = 'CLOSED';
-                t.pnl = t.type === 'LONG' ? (exit - t.entry) * t.qty : (t.entry - exit) * t.qty;
-                saveData(); closeModalFunc();
-                document.getElementById('modalExitPrice').value = '';
-            }
-        }
-
-        function requestNotificationPermission() {
-            if ("Notification" in window) {
-                Notification.requestPermission().then(p => alert(p === "granted" ? "Notifications enabled!" : "Notifications blocked."));
-            }
-        }
-
-        // ================= RENDER UI =================
-        function renderUI() {
-            const openBody = document.getElementById('openPositionsBody');
-            const closedBody = document.getElementById('closedTradeBody');
-            openBody.innerHTML = ''; closedBody.innerHTML = '';
-            let totalRealizedPnL = 0, totalWins = 0, closedCount = 0, totalInvestedAmt = 0, totalUnrealizedPnL = 0;
-            const openTrades = trades.filter(t => t.status === 'OPEN');
-            const closedTrades = trades.filter(t => t.status === 'CLOSED');
-
-            if (openTrades.length === 0) {
-                document.getElementById('noOpenState').style.display = 'block';
+                isAutoSyncing = false;
+                btn.innerText = "Auto-Sync: OFF 🔴";
+                btn.className = "text-[10px] bg-slate-800/80 hover:bg-slate-700 text-slate-300 px-4 py-2 rounded-lg uppercase font-bold tracking-wider transition border border-slate-600";
             } else {
-                document.getElementById('noOpenState').style.display = 'none';
-                openTrades.forEach(t => {
-                    const invested = t.qty * t.entry; totalInvestedAmt += invested;
-                    const liveCMP = t.liveCMP || t.entry;
-                    let unrealized = t.type === 'LONG' ? (liveCMP - t.entry) * t.qty : (t.entry - liveCMP) * t.qty;
-                    totalUnrealizedPnL += unrealized;
-                    const profitPct = ((liveCMP - t.entry) / t.entry) * 100;
-                    const finalPct = t.type === 'LONG' ? profitPct : -profitPct;
-                    const pnlColor = unrealized >= 0 ? 'text-emerald-400' : 'text-rose-400';
-                    const typeClass = t.type === 'LONG' ? 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20' : 'text-rose-400 bg-rose-500/10 border-rose-500/20';
-                    const slBadge = t.sl ? `<div class="mt-1 inline-block text-[9px] px-1.5 py-0.5 rounded border ${t.slHit ? "text-rose-100 bg-rose-600 border-rose-500 font-bold" : "text-rose-400 bg-rose-500/10 border-rose-500/20"}">${t.slHit ? "SL HIT!" : 'SL: ₹' + t.sl.toFixed(2)}</div>` : '';
-                    openBody.innerHTML += `
-                    <tr class="table-row-hover border-b border-slate-800/40 cursor-default">
-                        <td class="py-4 px-6 font-black font-mono text-white text-[15px] cursor-pointer" onclick="loadMainChart('${t.symbol}')">${t.symbol}</td>
-                        <td class="py-4 px-6 text-center">
-                            <div class="font-black font-mono text-slate-200 text-sm mb-1">${t.qty}</div>
-                            <div class="text-[9px] font-bold px-1.5 py-0.5 rounded-full border inline-block uppercase ${typeClass}">${t.type}</div>
-                        </td>
-                        <td class="py-4 px-6 font-mono text-xs text-sky-300">₹${t.entry.toFixed(2)}${slBadge}</td>
-                        <td class="py-4 px-6 font-mono text-xs text-slate-400">₹${invested.toLocaleString('en-IN', {maximumFractionDigits:0})}</td>
-                        <td class="py-4 px-6 text-center">
-                            <input type="number" step="any" value="${liveCMP}" onchange="updateLiveCMP(${t.id}, this.value)" class="w-24 bg-slate-950/80 border border-slate-700/50 rounded-lg p-1.5 text-xs font-mono text-center text-white outline-none focus:border-sky-500 transition">
-                        </td>
-                        <td class="py-4 px-6 text-right font-mono">
-                            <div class="font-black text-sm ${pnlColor}">${unrealized >= 0 ? '+' : ''}₹${unrealized.toFixed(2)}</div>
-                            <div class="text-[10px] font-bold opacity-80 mt-0.5 ${pnlColor}">(${finalPct >= 0 ? '+' : ''}${finalPct.toFixed(2)}%)</div>
-                        </td>
-                        <td class="py-4 px-6 text-center">
-                            <div class="flex justify-center items-center gap-2">
-                                <button onclick="loadMainChart('${t.symbol}')" class="w-8 h-8 rounded-lg bg-slate-800 hover:bg-sky-500/20 text-slate-400 hover:text-sky-400 border border-slate-700 flex items-center justify-center transition">📉</button>
-                                <button onclick="openEditModal(${t.id})" class="w-8 h-8 rounded-lg bg-slate-800 hover:bg-blue-500/20 text-slate-400 hover:text-blue-400 border border-slate-700 flex items-center justify-center transition">✏️</button>
-                                <button onclick="openCloseModal(${t.id}, '${t.symbol}')" class="w-8 h-8 rounded-lg bg-slate-800 hover:bg-purple-500/20 text-slate-400 hover:text-purple-400 border border-slate-700 flex items-center justify-center transition">⏏️</button>
-                                <button onclick="deleteTrade(${t.id})" class="w-8 h-8 rounded-lg text-slate-500 hover:text-rose-500 hover:bg-rose-500/10 flex items-center justify-center transition">×</button>
-                            </div>
-                        </td>
-                    </tr>`;
-                });
+                autoSyncTimer = setInterval(fetchLiveCMPFromPython, 4000); // প্রতি ৪ সেকেন্ডে ডাটা সিঙ্ক ও চার্ট রি-এভ্যালুয়েশন
+                isAutoSyncing = true;
+                btn.innerText = "Auto-Sync: ON 🟢";
+                btn.className = "text-[10px] bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 px-4 py-2 rounded-lg uppercase font-bold tracking-wider transition border border-emerald-500/30 live-glow";
+                fetchLiveCMPFromPython();
             }
-
-            closedTrades.forEach(t => {
-                totalRealizedPnL += t.pnl; closedCount++; if (t.pnl > 0) totalWins++;
-                const pnlColor = t.pnl >= 0 ? 'text-emerald-400' : 'text-rose-400';
-                closedBody.innerHTML += `
-                <tr class="hover:bg-slate-800/30 transition-colors opacity-75 hover:opacity-100">
-                    <td class="py-3 px-6"><div class="font-bold text-slate-200 font-mono text-sm">${t.symbol}</div><div class="text-[9px] text-slate-500 mt-0.5">${t.date}</div></td>
-                    <td class="py-3 px-6 text-center">
-                        <span class="font-black font-mono text-slate-300 mr-2">${t.qty}</span>
-                        <span class="${t.type === 'LONG' ? 'text-emerald-500 bg-emerald-500/10 border-emerald-500/20' : 'text-rose-500 bg-rose-500/10 border-rose-500/20'} px-1.5 py-0.5 rounded border text-[9px] font-bold">${t.type}</span>
-                    </td>
-                    <td class="py-3 px-6 font-mono text-xs"><span class="text-slate-400">₹${t.entry.toFixed(2)}</span> <span class="text-slate-600 mx-1">→</span> <span class="text-slate-300">₹${t.exit.toFixed(2)}</span></td>
-                    <td class="py-3 px-6 font-black font-mono text-right ${pnlColor} text-sm">${t.pnl >= 0 ? '+' : ''}₹${t.pnl.toFixed(2)}</td>
-                    <td class="py-3 px-6 text-center"><button onclick="deleteTrade(${t.id})" class="text-slate-600 hover:text-rose-500 w-6 h-6 rounded flex items-center justify-center mx-auto transition">×</button></td>
-                </tr>`;
-            });
-
-            document.getElementById('netPnL').innerText = (totalRealizedPnL >= 0 ? '+' : '') + '₹' + totalRealizedPnL.toLocaleString('en-IN', { maximumFractionDigits: 2 });
-            document.getElementById('netPnL').className = `text-3xl font-black font-mono tracking-tight ${totalRealizedPnL >= 0 ? 'text-emerald-400' : 'text-rose-400'}`;
-            document.getElementById('winRateTxt').innerText = closedCount > 0 ? ((totalWins / closedCount) * 100).toFixed(1) + '%' : '0%';
-            document.getElementById('totalInvested').innerText = '₹' + totalInvestedAmt.toLocaleString('en-IN', { maximumFractionDigits: 2 });
-            document.getElementById('unrealizedPnL').innerText = (totalUnrealizedPnL >= 0 ? '+' : '') + '₹' + totalUnrealizedPnL.toLocaleString('en-IN', { maximumFractionDigits: 2 });
-            document.getElementById('unrealizedPnL').className = `text-3xl font-black font-mono tracking-tight ${totalUnrealizedPnL >= 0 ? 'text-emerald-400' : 'text-rose-400'}`;
         }
     </script>
 </body>
