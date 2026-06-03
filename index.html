@@ -615,15 +615,26 @@
         async function fetchLiveCMPFromPython() {
             const openTrades = trades.filter(t => t.status === 'OPEN');
             if (openTrades.length === 0) return;
-            for (let t of openTrades) {
-                try {
-                    let sym = t.symbol.includes('.') ? t.symbol : t.symbol + '.NS';
-                    const res = await fetch(`https://quantum-trader-api.onrender.com/api/price/${sym}`);
-                    const data = await res.json();
-                    if (data.status === 'success') { t.liveCMP = data.price; checkStopLoss(t); }
-                } catch (e) { }
+
+            // Bulk API — সব symbol একসাথে একটি request এ পাঠানো হচ্ছে
+            const symbolsStr = openTrades.map(t => t.symbol).join(',');
+            try {
+                const res = await fetch(`https://quantum-trader-api.onrender.com/api/prices?symbols=${symbolsStr}`);
+                const data = await res.json();
+                if (data.status === 'success') {
+                    openTrades.forEach(t => {
+                        if (data.prices[t.symbol] !== undefined) {
+                            t.liveCMP = data.prices[t.symbol];
+                            checkStopLoss(t);
+                        }
+                    });
+                }
+            } catch (e) {
+                console.error("Bulk price sync failed:", e);
             }
+
             saveData();
+            renderUI();
         }
 
         function toggleAutoSync() {
