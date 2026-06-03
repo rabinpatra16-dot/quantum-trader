@@ -712,25 +712,12 @@
         if (!isMain) renderMultiCharts();
     }
 
-    // ====== CANDLESTICK CHART GRID ======
-    // Each candle = 1 minute. OHLC simulated from live price ticks.
+    // ====== TRADINGVIEW ADVANCED CHART GRID ======
     let gridCharts = {};
-    // gridCharts[id] = { chart, candleSeries, currentCandle, candleData, timer, ro }
-
-    const CANDLE_INTERVAL_SEC = 60; // 1-minute candles
-
-    function getCurrentCandleTime() {
-        // Floor to nearest minute
-        return Math.floor(Date.now() / 1000 / CANDLE_INTERVAL_SEC) * CANDLE_INTERVAL_SEC;
-    }
 
     function renderMultiCharts() {
-        // Destroy old
-        Object.values(gridCharts).forEach(g => {
-            clearInterval(g.timer);
-            if (g.ro) g.ro.disconnect();
-            try { g.chart.remove(); } catch {}
-        });
+        // Destroy old timers & clear
+        Object.values(gridCharts).forEach(g => { clearInterval(g.timer); });
         gridCharts = {};
 
         const container = document.getElementById('multiChartContainer');
@@ -745,10 +732,9 @@
         const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
 
         open.forEach(t => {
-            const chartDivId = 'lwc_' + t.id;
+            const chartDivId = 'adv_' + t.id;
             const priceDivId = 'prc_' + t.id;
             const pnlDivId   = 'pnl_' + t.id;
-            const chgDivId   = 'chg_' + t.id;
             const cmp = t.liveCMP || t.entry;
             const unr = t.type === 'LONG' ? (cmp - t.entry) * t.qty : (t.entry - cmp) * t.qty;
             const pct = t.type === 'LONG' ? ((cmp - t.entry) / t.entry * 100) : -((cmp - t.entry) / t.entry * 100);
@@ -757,7 +743,7 @@
 
             const card = document.createElement('div');
             card.className = 'card flex flex-col overflow-hidden';
-            card.style.cssText = `height:420px;border-top:3px solid ${pos ? '#10b981' : '#f43f5e'};transition:border-color 0.3s`;
+            card.style.cssText = `height:460px;border-top:3px solid ${pos ? '#10b981' : '#f43f5e'};transition:border-color 0.3s`;
 
             card.innerHTML = `
                 <!-- Header -->
@@ -766,8 +752,8 @@
                         <span class="font-black font-mono text-sm cursor-pointer hover:text-blue-600 transition" style="color:var(--text)" onclick="loadMainChart('${t.symbol}');toggleView('main')">${t.symbol}</span>
                         <span class="text-[9px] font-bold px-2 py-0.5 rounded-full ${t.type === 'LONG' ? 'badge-long' : 'badge-short'}">${t.type} ×${t.qty}</span>
                     </div>
-                    <div class="flex items-center gap-1.5">
-                        <span id="${chgDivId}" class="text-[9px] font-bold px-2 py-1 rounded-lg font-mono" style="background:rgba(37,99,235,0.08);color:#2563eb">1m LIVE</span>
+                    <div class="flex items-center gap-2">
+                        <span class="text-[9px] font-bold px-2 py-1 rounded-lg font-mono" style="background:rgba(37,99,235,0.08);color:#2563eb">● REAL-TIME</span>
                     </div>
                 </div>
 
@@ -779,111 +765,46 @@
                     </div>
                     <div class="text-center">
                         <div class="text-[9px] font-bold uppercase tracking-wider" style="color:var(--text3)">CMP</div>
-                        <div id="${priceDivId}" class="font-black font-mono text-sm" style="color:var(--text);transition:color 0.2s">₹${cmp.toFixed(2)}</div>
+                        <div id="${priceDivId}" class="font-black font-mono text-sm" style="color:var(--text)">₹${cmp.toFixed(2)}</div>
                     </div>
                     <div class="text-right">
                         <div class="text-[9px] font-bold uppercase tracking-wider" style="color:var(--text3)">P&L</div>
-                        <div id="${pnlDivId}" class="font-black font-mono text-xs" style="color:${pnlCol}">${pos?'+':''}₹${unr.toFixed(2)}<br><span style="font-size:9px">(${pct>=0?'+':''}${pct.toFixed(2)}%)</span></div>
+                        <div id="${pnlDivId}" class="font-black font-mono text-xs leading-tight" style="color:${pnlCol}">${pos?'+':''}₹${unr.toFixed(2)}<br><span style="font-size:9px">(${pct>=0?'+':''}${pct.toFixed(2)}%)</span></div>
                     </div>
                 </div>
 
-                <!-- Chart -->
-                <div id="${chartDivId}" class="flex-1 w-full min-h-0"></div>`;
+                <!-- TradingView Advanced Chart -->
+                <div class="flex-1 min-h-0" id="${chartDivId}"></div>`;
 
             container.appendChild(card);
 
-            // ---- Init chart ----
-            const chartEl = document.getElementById(chartDivId);
-            const chart = LightweightCharts.createChart(chartEl, {
-                layout: {
-                    background: { color: isDark ? '#0d1428' : '#fafbfc' },
-                    textColor: isDark ? '#94a3b8' : '#64748b',
-                    fontSize: 10,
-                },
-                grid: {
-                    vertLines: { color: isDark ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.04)' },
-                    horzLines: { color: isDark ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.04)' },
-                },
-                crosshair: { mode: LightweightCharts.CrosshairMode.Normal },
-                rightPriceScale: {
-                    borderColor: isDark ? 'rgba(255,255,255,0.06)' : '#e2e8f0',
-                    scaleMargins: { top: 0.12, bottom: 0.12 },
-                },
-                timeScale: {
-                    borderColor: isDark ? 'rgba(255,255,255,0.06)' : '#e2e8f0',
-                    timeVisible: true,
-                    secondsVisible: false,
-                    fixLeftEdge: false,
-                    fixRightEdge: false,
-                },
-                handleScroll: true,
-                handleScale: true,
+            // ---- TradingView Advanced Chart ----
+            new TradingView.widget({
+                container_id: chartDivId,
+                autosize: true,
+                symbol: formatTVSymbol(t.symbol),
+                interval: '5',          // 5-minute candles by default
+                timezone: 'Asia/Kolkata',
+                theme: isDark ? 'dark' : 'light',
+                style: '1',             // 1 = Candlestick
+                locale: 'in',
+                toolbar_bg: isDark ? '#0d1428' : '#f8fafc',
+                enable_publishing: false,
+                hide_top_toolbar: false,
+                hide_legend: false,
+                hide_side_toolbar: true,
+                allow_symbol_change: false,
+                save_image: false,
+                withdateranges: false,
+                studies: [],
+                show_popup_button: false,
+                backgroundColor: isDark ? '#0d1428' : '#fafbfc',
+                gridColor: isDark ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.04)',
             });
 
-            // Candlestick series
-            const candleSeries = chart.addCandlestickSeries({
-                upColor:          '#059669',
-                downColor:        '#dc2626',
-                borderUpColor:    '#059669',
-                borderDownColor:  '#dc2626',
-                wickUpColor:      '#059669',
-                wickDownColor:    '#dc2626',
-            });
+            // Store & start live P&L sync from API
+            gridCharts[t.id] = { timer: null };
 
-            // Entry price line
-            candleSeries.createPriceLine({
-                price: t.entry,
-                color: '#2563eb',
-                lineWidth: 1,
-                lineStyle: LightweightCharts.LineStyle.Dashed,
-                axisLabelVisible: true,
-                title: 'Entry ₹' + t.entry.toFixed(2),
-            });
-
-            // SL price line
-            if (t.sl) {
-                candleSeries.createPriceLine({
-                    price: t.sl,
-                    color: '#ef4444',
-                    lineWidth: 1,
-                    lineStyle: LightweightCharts.LineStyle.Dotted,
-                    axisLabelVisible: true,
-                    title: 'SL ₹' + t.sl.toFixed(2),
-                });
-            }
-
-            // Target price line
-            if (t.exit) {
-                candleSeries.createPriceLine({
-                    price: t.exit,
-                    color: '#059669',
-                    lineWidth: 1,
-                    lineStyle: LightweightCharts.LineStyle.Dotted,
-                    axisLabelVisible: true,
-                    title: 'Target ₹' + t.exit.toFixed(2),
-                });
-            }
-
-            // Seed initial candle from entry price
-            const initTime = getCurrentCandleTime() - CANDLE_INTERVAL_SEC;
-            const seedCandle = { time: initTime, open: t.entry, high: Math.max(t.entry, cmp), low: Math.min(t.entry, cmp), close: cmp };
-            const currentCandleTime = getCurrentCandleTime();
-            const currentCandle = { time: currentCandleTime, open: cmp, high: cmp, low: cmp, close: cmp };
-            const candleData = [seedCandle, currentCandle];
-            candleSeries.setData(candleData);
-            chart.timeScale().fitContent();
-
-            // Resize observer
-            const ro = new ResizeObserver(() => {
-                if (!chartEl.offsetWidth || !chartEl.offsetHeight) return;
-                chart.applyOptions({ width: chartEl.offsetWidth, height: chartEl.offsetHeight });
-            });
-            ro.observe(chartEl);
-
-            // Store
-            gridCharts[t.id] = { chart, candleSeries, currentCandle, candleData, timer: null, ro, lastPrice: cmp };
-
-            // ---- Live fetch & candle update ----
             const fetchAndUpdate = async () => {
                 try {
                     const sym = t.symbol.includes('.') ? t.symbol : t.symbol + '.NS';
@@ -892,56 +813,27 @@
                     if (data.status !== 'success') return;
 
                     const price = parseFloat(data.price);
-                    const g = gridCharts[t.id];
-                    if (!g) return;
-
-                    const nowCandleTime = getCurrentCandleTime();
-
-                    if (nowCandleTime > g.currentCandle.time) {
-                        // New candle — close old, open new
-                        g.currentCandle = {
-                            time:  nowCandleTime,
-                            open:  g.lastPrice,
-                            high:  Math.max(g.lastPrice, price),
-                            low:   Math.min(g.lastPrice, price),
-                            close: price,
-                        };
-                        g.candleData.push(g.currentCandle);
-                    } else {
-                        // Update current candle
-                        g.currentCandle.close = price;
-                        g.currentCandle.high  = Math.max(g.currentCandle.high, price);
-                        g.currentCandle.low   = Math.min(g.currentCandle.low,  price);
-                        g.candleData[g.candleData.length - 1] = { ...g.currentCandle };
-                    }
-
-                    g.lastPrice = price;
-                    g.candleSeries.setData([...g.candleData]);
-                    chart.timeScale().scrollToRealTime();
-
-                    // Update trade store
                     const idx = trades.findIndex(tr => tr.id === t.id);
                     if (idx > -1) { trades[idx].liveCMP = price; checkStopLoss(trades[idx]); }
 
-                    // Update stats
                     const newUnr = t.type === 'LONG' ? (price - t.entry) * t.qty : (t.entry - price) * t.qty;
                     const newPct = t.type === 'LONG' ? ((price - t.entry) / t.entry * 100) : -((price - t.entry) / t.entry * 100);
                     const newPos = newUnr >= 0;
                     const newCol = newPos ? '#059669' : '#dc2626';
 
                     const priceEl = document.getElementById(priceDivId);
-                    const pnlEl2  = document.getElementById(pnlDivId);
-                    const cardEl  = priceEl?.closest('.card');
+                    const pnlEl   = document.getElementById(pnlDivId);
+                    const cardEl  = document.getElementById(chartDivId)?.closest('.card');
 
                     if (priceEl) priceEl.innerText = '₹' + price.toFixed(2);
-                    if (pnlEl2) {
-                        pnlEl2.innerHTML = `${newPos?'+':''}₹${newUnr.toFixed(2)}<br><span style="font-size:9px">(${newPct>=0?'+':''}${newPct.toFixed(2)}%)</span>`;
-                        pnlEl2.style.color = newCol;
+                    if (pnlEl) {
+                        pnlEl.innerHTML = `${newPos?'+':''}₹${newUnr.toFixed(2)}<br><span style="font-size:9px">(${newPct>=0?'+':''}${newPct.toFixed(2)}%)</span>`;
+                        pnlEl.style.color = newCol;
                     }
                     if (cardEl) cardEl.style.borderTopColor = newPos ? '#10b981' : '#f43f5e';
 
                     saveData();
-                } catch (e) { console.log('Candle fetch err:', e); }
+                } catch (e) { console.log('Grid sync err:', e); }
             };
 
             fetchAndUpdate();
@@ -950,11 +842,7 @@
     }
 
     function destroyGridCharts() {
-        Object.values(gridCharts).forEach(g => {
-            clearInterval(g.timer);
-            if (g.ro) g.ro.disconnect();
-            try { g.chart.remove(); } catch {}
-        });
+        Object.values(gridCharts).forEach(g => clearInterval(g.timer));
         gridCharts = {};
     }
 
