@@ -15,6 +15,7 @@
     <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <script type="text/javascript" src="https://s3.tradingview.com/tv.js"></script>
+    <script src="https://unpkg.com/lightweight-charts@4.1.3/dist/lightweight-charts.standalone.production.js"></script>
 
     <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700;800&family=DM+Mono:wght@400;500;700&display=swap" rel="stylesheet">
 
@@ -701,6 +702,7 @@
 
     // ====== VIEWS ======
     function toggleView(view) {
+        if (view === 'main') destroyGridCharts();
         currentView = view;
         const isMain = view === 'main';
         document.getElementById('view-main').classList.toggle('hidden', !isMain);
@@ -710,37 +712,195 @@
         if (!isMain) renderMultiCharts();
     }
 
+    // ====== LIGHTWEIGHT CHARTS GRID ======
+    let gridCharts = {}; // { tradeId: { chart, lineSeries, priceHistory, timer } }
+
     function renderMultiCharts() {
-        const c = document.getElementById('multiChartContainer'); c.innerHTML = '';
+        // Destroy old charts & timers
+        Object.values(gridCharts).forEach(g => {
+            clearInterval(g.timer);
+            try { g.chart.remove(); } catch {}
+        });
+        gridCharts = {};
+
+        const c = document.getElementById('multiChartContainer');
+        c.innerHTML = '';
         const open = trades.filter(t => t.status === 'OPEN');
-        if (!open.length) { c.innerHTML = `<div class="col-span-full card p-16 text-center text-xs font-mono uppercase tracking-widest" style="color:var(--text3)">No active positions</div>`; return; }
+        if (!open.length) {
+            c.innerHTML = `<div class="col-span-full card p-16 text-center text-xs font-mono uppercase tracking-widest" style="color:var(--text3)">No active positions</div>`;
+            return;
+        }
+
         const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+
         open.forEach(t => {
-            const id = 'tv_m_' + t.id, cmp = t.liveCMP || t.entry;
+            const chartDivId = 'lwc_' + t.id;
+            const priceDivId = 'prc_' + t.id;
+            const pnlDivId   = 'pnl_' + t.id;
+            const cmp = t.liveCMP || t.entry;
             const unr = t.type === 'LONG' ? (cmp - t.entry) * t.qty : (t.entry - cmp) * t.qty;
             const pct = t.type === 'LONG' ? ((cmp - t.entry) / t.entry * 100) : -((cmp - t.entry) / t.entry * 100);
-            const pos = unr >= 0, col = pos ? '#059669' : '#dc2626';
+            const pos = unr >= 0;
+            const col = pos ? '#059669' : '#dc2626';
+
             const card = document.createElement('div');
             card.className = 'card flex flex-col overflow-hidden';
-            card.style.cssText = 'height:360px;border-top:3px solid ' + (pos ? '#10b981' : '#f43f5e');
+            card.style.cssText = `height:400px;border-top:3px solid ${pos ? '#10b981' : '#f43f5e'};`;
             card.innerHTML = `
-                <div class="px-4 py-3 flex justify-between items-center" style="border-bottom:1px solid var(--border);background:var(--surface2)">
-                    <span class="font-black font-mono text-sm cursor-pointer hover:text-blue-600 transition" style="color:var(--text)" onclick="loadMainChart('${t.symbol}');toggleView('main')">${t.symbol}</span>
+                <div class="px-4 py-2.5 flex justify-between items-center" style="border-bottom:1px solid var(--border);background:var(--surface2)">
+                    <div>
+                        <span class="font-black font-mono text-sm cursor-pointer hover:text-blue-600 transition" style="color:var(--text)" onclick="loadMainChart('${t.symbol}');toggleView('main')">${t.symbol}</span>
+                        <span class="ml-2 text-[9px] font-bold px-2 py-0.5 rounded-full ${t.type === 'LONG' ? 'badge-long' : 'badge-short'}">${t.type} ×${t.qty}</span>
+                    </div>
                     <div class="flex items-center gap-2">
-                        <span class="text-[9px] font-bold px-2 py-0.5 rounded-full ${t.type === 'LONG' ? 'badge-long' : 'badge-short'}">${t.type} ×${t.qty}</span>
+                        <span class="text-[9px] font-mono px-2 py-1 rounded-lg" style="background:rgba(37,99,235,0.08);color:#2563eb">LIVE ●</span>
                     </div>
                 </div>
-                <div class="px-4 py-2.5 flex justify-between items-center" style="border-bottom:1px solid var(--border);background:var(--surface)">
-                    <span class="text-[11px] font-mono" style="color:var(--text3)">₹${(t.qty*t.entry).toLocaleString('en-IN',{maximumFractionDigits:0})}</span>
+                <div class="px-4 py-2 flex justify-between items-center" style="border-bottom:1px solid var(--border);background:var(--surface)">
+                    <div>
+                        <div class="text-[9px] font-bold uppercase tracking-wider mb-0.5" style="color:var(--text3)">Entry</div>
+                        <div class="font-black font-mono text-xs text-blue-600">₹${t.entry.toFixed(2)}</div>
+                    </div>
+                    <div class="text-center">
+                        <div class="text-[9px] font-bold uppercase tracking-wider mb-0.5" style="color:var(--text3)">CMP</div>
+                        <div id="${priceDivId}" class="font-black font-mono text-sm" style="color:var(--text)">₹${cmp.toFixed(2)}</div>
+                    </div>
                     <div class="text-right">
-                        <div class="font-black text-sm font-mono" style="color:${col}">${pos?'+':''}₹${unr.toFixed(2)}</div>
-                        <div class="text-[10px] font-bold font-mono" style="color:${col}">(${pct>=0?'+':''}${pct.toFixed(2)}%)</div>
+                        <div class="text-[9px] font-bold uppercase tracking-wider mb-0.5" style="color:var(--text3)">P&L</div>
+                        <div id="${pnlDivId}" class="font-black font-mono text-sm" style="color:${col}">${pos?'+':''}₹${unr.toFixed(2)} (${pct>=0?'+':''}${pct.toFixed(2)}%)</div>
                     </div>
                 </div>
-                <div id="${id}" class="flex-1" style="background:${isDark?'#0f172a':'#fff'}"></div>`;
+                <div id="${chartDivId}" class="flex-1 w-full"></div>`;
             c.appendChild(card);
-            new TradingView.widget({ autosize:true, symbol:formatTVSymbol(t.symbol), interval:'D', timezone:'Asia/Kolkata', theme:isDark?'dark':'light', style:'1', locale:'in', enable_publishing:false, backgroundColor:isDark?'#0f172a':'#ffffff', hide_top_toolbar:true, hide_side_toolbar:true, hide_legend:true, save_image:false, container_id:id });
+
+            // Init lightweight chart
+            const chartEl = document.getElementById(chartDivId);
+            const chart = LightweightCharts.createChart(chartEl, {
+                width: chartEl.offsetWidth,
+                height: chartEl.offsetHeight || 250,
+                layout: {
+                    background: { color: isDark ? '#0d1428' : '#ffffff' },
+                    textColor: isDark ? '#94a3b8' : '#475569',
+                },
+                grid: {
+                    vertLines: { color: isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.05)' },
+                    horzLines: { color: isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.05)' },
+                },
+                crosshair: { mode: LightweightCharts.CrosshairMode.Normal },
+                rightPriceScale: { borderColor: isDark ? 'rgba(255,255,255,0.08)' : '#e2e8f0', scaleMargins: { top: 0.1, bottom: 0.1 } },
+                timeScale: { borderColor: isDark ? 'rgba(255,255,255,0.08)' : '#e2e8f0', timeVisible: true, secondsVisible: false },
+                handleScroll: true,
+                handleScale: true,
+            });
+
+            const upCol = '#059669', downCol = '#dc2626';
+            const lineSeries = chart.addAreaSeries({
+                lineColor: pos ? upCol : downCol,
+                topColor: pos ? 'rgba(5,150,105,0.2)' : 'rgba(220,38,38,0.2)',
+                bottomColor: pos ? 'rgba(5,150,105,0.02)' : 'rgba(220,38,38,0.02)',
+                lineWidth: 2,
+                priceLineVisible: true,
+                lastValueVisible: true,
+            });
+
+            // Entry price line
+            lineSeries.createPriceLine({
+                price: t.entry,
+                color: '#2563eb',
+                lineWidth: 1,
+                lineStyle: LightweightCharts.LineStyle.Dashed,
+                axisLabelVisible: true,
+                title: 'Entry',
+            });
+
+            // SL line if exists
+            if (t.sl) {
+                lineSeries.createPriceLine({
+                    price: t.sl,
+                    color: '#ef4444',
+                    lineWidth: 1,
+                    lineStyle: LightweightCharts.LineStyle.Dotted,
+                    axisLabelVisible: true,
+                    title: 'SL',
+                });
+            }
+
+            // Seed history with entry point
+            const now = Math.floor(Date.now() / 1000);
+            const priceHistory = [{ time: now - 60, value: t.entry }, { time: now, value: cmp }];
+            lineSeries.setData(priceHistory);
+            chart.timeScale().fitContent();
+
+            // Resize observer
+            const ro = new ResizeObserver(() => {
+                chart.applyOptions({ width: chartEl.offsetWidth, height: chartEl.offsetHeight });
+            });
+            ro.observe(chartEl);
+
+            // Store refs
+            gridCharts[t.id] = { chart, lineSeries, priceHistory, timer: null, ro };
+
+            // Live price fetch every 10s
+            const fetchAndUpdate = async () => {
+                try {
+                    const sym = t.symbol.includes('.') ? t.symbol : t.symbol + '.NS';
+                    const res = await fetch(`https://quantum-trader-rlme.onrender.com/api/price/${sym}`);
+                    const data = await res.json();
+                    if (data.status !== 'success') return;
+
+                    const price = data.price;
+                    const ts = Math.floor(Date.now() / 1000);
+
+                    // Update chart
+                    const history = gridCharts[t.id].priceHistory;
+                    // Avoid duplicate timestamps
+                    if (history.length && history[history.length - 1].time >= ts) {
+                        history[history.length - 1].value = price;
+                    } else {
+                        history.push({ time: ts, value: price });
+                    }
+                    gridCharts[t.id].lineSeries.setData([...history]);
+                    chart.timeScale().scrollToRealTime();
+
+                    // Update trade
+                    const idx = trades.findIndex(tr => tr.id === t.id);
+                    if (idx > -1) { trades[idx].liveCMP = price; checkStopLoss(trades[idx]); }
+
+                    // Update card stats
+                    const newUnr = t.type === 'LONG' ? (price - t.entry) * t.qty : (t.entry - price) * t.qty;
+                    const newPct = t.type === 'LONG' ? ((price - t.entry) / t.entry * 100) : -((price - t.entry) / t.entry * 100);
+                    const newPos = newUnr >= 0, newCol = newPos ? '#059669' : '#dc2626';
+
+                    const priceEl = document.getElementById(priceDivId);
+                    const pnlEl2  = document.getElementById(pnlDivId);
+                    if (priceEl) priceEl.innerText = '₹' + price.toFixed(2);
+                    if (pnlEl2)  { pnlEl2.innerText = `${newPos?'+':''}₹${newUnr.toFixed(2)} (${newPct>=0?'+':''}${newPct.toFixed(2)}%)`; pnlEl2.style.color = newCol; }
+
+                    // Update area color dynamically
+                    gridCharts[t.id].lineSeries.applyOptions({
+                        lineColor: newCol,
+                        topColor: newPos ? 'rgba(5,150,105,0.2)' : 'rgba(220,38,38,0.2)',
+                        bottomColor: newPos ? 'rgba(5,150,105,0.02)' : 'rgba(220,38,38,0.02)',
+                    });
+
+                    saveData();
+                } catch (e) { console.log('Price fetch error:', e); }
+            };
+
+            // First fetch immediately, then every 10s
+            fetchAndUpdate();
+            gridCharts[t.id].timer = setInterval(fetchAndUpdate, 10000);
         });
+    }
+
+    // Clean up grid when switching views
+    function destroyGridCharts() {
+        Object.values(gridCharts).forEach(g => {
+            clearInterval(g.timer);
+            if (g.ro) g.ro.disconnect();
+            try { g.chart.remove(); } catch {}
+        });
+        gridCharts = {};
     }
 
     // ====== SL CHECK ======
