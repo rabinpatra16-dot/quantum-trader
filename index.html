@@ -628,21 +628,6 @@
                 }
             });
         }
-                    // Update Text seamlessly without reloading iframe
-                    document.getElementById(`label_${t.id}`).innerText = priceLabel;
-                    document.getElementById(`pct_${t.id}`).className = `font-black ${pnlColor} text-xl tracking-tight`;
-                    document.getElementById(`pct_${t.id}`).innerText = `${finalPct >= 0 ? '+' : ''}${finalPct.toFixed(2)}%`;
-                    document.getElementById(`tot_${t.id}`).className = pnlColor;
-                    document.getElementById(`tot_${t.id}`).innerText = `Total: ${unrealized >= 0 ? '+' : ''}₹${unrealized.toFixed(2)}`;
-                    document.getElementById(`day_${t.id}`).className = dayColor;
-                    document.getElementById(`day_${t.id}`).innerText = `Day: ${dayChangeVal >= 0 ? '+' : ''}₹${dayChangeVal.toFixed(2)}`;
-                    
-                    const cmpInput = document.getElementById(`cmp_${t.id}`);
-                    if(document.activeElement !== cmpInput) cmpInput.value = liveCMP;
-                }
-            });
-        }
-
         // ================= WEBSOCKET LOGIC =================
         const SERVER_URL = "https://quantum-trader-api.onrender.com"; 
         const socket = io(SERVER_URL);
