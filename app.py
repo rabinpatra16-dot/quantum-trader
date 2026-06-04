@@ -78,7 +78,7 @@ def subscribe_symbols():
     formatted_symbols = [format_fyers_symbol(s) for s in symbols if format_fyers_symbol(s)]
     
     if formatted_symbols and fyers_ws:
-        fyers_ws.subscribe(data_type="SymbolUpdate", symbol=formatted_symbols)
+        fyers_ws.subscribe(data_type="SymbolUpdate", symbols=formatted_symbols)
         return jsonify({'status': 'success', 'message': f'Subscribed to {formatted_symbols}'})
     return jsonify({'status': 'error', 'message': 'Invalid symbols'})
 
