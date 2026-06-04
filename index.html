@@ -3,22 +3,25 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>QuantumTrader | Grid Dashboard</title>
+    <title>QuantumTrader | PRO Grid Dashboard</title>
     
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#060b19">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    
+    <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/2933/2933116.png">
+
+    <!-- Firebase -->
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
 
+    <!-- Utilities & UI -->
     <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <script type="text/javascript" src="https://s3.tradingview.com/tv.js"></script>
     
-    <!-- Updated Superfast Socket.IO Link -->
+    <!-- Superfast Socket.IO Link -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.2/socket.io.min.js"></script>
     
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700;800&display=swap" rel="stylesheet">
@@ -49,6 +52,7 @@
             border: 1px solid var(--glass-border); 
             box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
             border-radius: 16px;
+            transition: all 0.3s ease;
         }
         .kpi-card { position: relative; overflow: hidden; }
         .kpi-card::before { content: ''; position: absolute; top: 0; left: 0; width: 4px; height: 100%; }
@@ -56,6 +60,7 @@
         .kpi-blue::before { background: linear-gradient(to bottom, #38bdf8, #0284c7); }
         .kpi-purple::before { background: linear-gradient(to bottom, #a855f7, #6b21a8); }
         .kpi-gray::before { background: linear-gradient(to bottom, #94a3b8, #475569); }
+        
         .input-ultra { 
             background: rgba(4, 9, 20, 0.8); 
             border: 1px solid rgba(255, 255, 255, 0.08); 
@@ -76,11 +81,14 @@
             transition: all 0.3s; box-shadow: 0 4px 15px rgba(79, 70, 229, 0.3);
         }
         .btn-ultra:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(79, 70, 229, 0.5); filter: brightness(1.1); }
+        
         ::-webkit-scrollbar { width: 6px; height: 6px; }
-        ::-webkit-scrollbar-track { background: rgba(0,0,0,0.2); }
+        ::-webkit-scrollbar-track { background: rgba(0,0,0,0.2); border-radius: 10px; }
         ::-webkit-scrollbar-thumb { background: rgba(56, 189, 248, 0.3); border-radius: 10px; }
+        
         .live-glow { animation: pulseGlow 2s infinite; }
         @keyframes pulseGlow { 0% { box-shadow: 0 0 0 0 rgba(56, 189, 248, 0.6); } 70% { box-shadow: 0 0 0 8px rgba(56, 189, 248, 0); } 100% { box-shadow: 0 0 0 0 rgba(56, 189, 248, 0); } }
+        
         /* Hide arrows from number input */
         input[type=number]::-webkit-inner-spin-button, 
         input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
@@ -92,7 +100,7 @@
     <div id="authScreen" class="fixed inset-0 bg-[#060b19] z-[100] flex items-center justify-center p-4">
         <div class="glass-card p-8 w-full max-w-md border-sky-500/30">
             <h1 class="text-3xl font-black tracking-tighter mb-2 text-center">QUANTUM<span class="text-sky-400">TRADER</span></h1>
-            <p class="text-xs text-slate-400 mb-8 text-center uppercase">Login to your workspace</p>
+            <p class="text-xs text-slate-400 mb-8 text-center uppercase tracking-widest">Login to your workspace</p>
             <input type="email" id="authEmail" placeholder="Email address" class="input-ultra font-mono text-sm mb-4">
             <input type="password" id="authPassword" placeholder="Password" class="input-ultra font-mono text-sm mb-6">
             <div class="flex gap-3">
@@ -100,11 +108,12 @@
             </div>
             <div class="relative flex items-center py-5">
                 <div class="flex-grow border-t border-slate-700/50"></div>
-                <span class="flex-shrink-0 mx-4 text-slate-500 text-[10px] uppercase font-bold">OR</span>
+                <span class="flex-shrink-0 mx-4 text-slate-500 text-[10px] uppercase font-bold tracking-widest">OR</span>
                 <div class="flex-grow border-t border-slate-700/50"></div>
             </div>
             <button onclick="loginWithGoogle()" class="w-full bg-slate-100 text-slate-900 font-bold py-3.5 rounded-xl transition flex justify-center items-center gap-3">
-                <span class="text-xs uppercase">Continue with Google</span>
+                <svg class="w-5 h-5" viewBox="0 0 24 24"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>
+                <span class="text-xs uppercase tracking-wider">Continue with Google</span>
             </button>
             <p id="authError" class="text-rose-400 text-xs mt-4 text-center font-bold"></p>
         </div>
@@ -118,13 +127,16 @@
             <!-- Header -->
             <header class="flex justify-between items-center mb-8 bg-slate-900/40 p-5 rounded-2xl border border-slate-800/50 backdrop-blur-md">
                 <div>
-                    <h1 class="text-2xl font-black tracking-tighter">QUANTUM<span class="text-sky-400">TRADER</span></h1>
-                    <p class="text-[10px] text-slate-400 mt-1 uppercase font-mono"><span class="w-1.5 h-1.5 inline-block rounded-full bg-emerald-500 live-glow mr-1"></span><span id="userEmailDisplay" class="text-sky-400"></span></p>
+                    <h1 class="text-2xl font-black tracking-tighter">QUANTUM<span class="text-sky-400">TRADER</span> <span class="text-[10px] text-sky-400 border border-sky-500/30 bg-sky-500/10 px-2 py-0.5 rounded ml-2 align-middle font-mono">GRID V9</span></h1>
+                    <p class="text-[10px] text-slate-400 mt-1 uppercase font-mono tracking-widest flex items-center gap-2">
+                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 live-glow"></span> 
+                        <span id="userEmailDisplay" class="text-sky-400"></span>
+                    </p>
                 </div>
                 <div class="flex gap-2">
-                    <button onclick="triggerImport()" class="text-xs font-bold text-emerald-400 bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/20 px-3 py-2 rounded-lg transition">⬆️ Import</button>
-                    <button onclick="exportData()" class="text-xs font-bold text-blue-400 bg-blue-500/10 hover:bg-blue-500/20 border border-blue-500/20 px-3 py-2 rounded-lg transition">⬇️ Export</button>
-                    <button onclick="logoutUser()" class="text-xs font-bold text-slate-400 bg-slate-800/50 hover:bg-slate-700 border border-slate-700/50 px-3 py-2 rounded-lg transition">Logout</button>
+                    <button onclick="triggerImport()" class="text-[10px] font-bold text-emerald-400 bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/20 px-4 py-2 rounded-lg transition uppercase tracking-wider">⬆️ Import</button>
+                    <button onclick="exportData()" class="text-[10px] font-bold text-blue-400 bg-blue-500/10 hover:bg-blue-500/20 border border-blue-500/20 px-4 py-2 rounded-lg transition uppercase tracking-wider">⬇️ Export</button>
+                    <button onclick="logoutUser()" class="text-[10px] font-bold text-slate-400 bg-slate-800/50 hover:bg-slate-700 border border-slate-700/50 px-4 py-2 rounded-lg transition uppercase tracking-wider">Logout</button>
                 </div>
             </header>
 
@@ -135,33 +147,33 @@
                         <h2 class="text-xs font-bold text-white uppercase tracking-widest flex items-center gap-2 mb-6">🚀 Execute Order</h2>
                         <form id="tradeForm" class="space-y-4">
                             <div>
-                                <label class="block text-[10px] font-bold text-slate-400 mb-1 uppercase">Symbol</label>
+                                <label class="block text-[10px] font-bold text-slate-400 mb-1.5 uppercase tracking-wider">Symbol</label>
                                 <input type="text" id="symbol" list="tickers" placeholder="e.g. RELIANCE" required autocomplete="off" class="input-ultra font-mono text-sm uppercase">
                                 <datalist id="tickers"></datalist>
                             </div>
                             <div class="grid grid-cols-2 gap-3">
                                 <div>
-                                    <label class="block text-[10px] font-bold text-slate-400 mb-1 uppercase">Direction</label>
-                                    <select id="type" class="input-ultra text-xs font-bold p-2 h-[42px]">
+                                    <label class="block text-[10px] font-bold text-slate-400 mb-1.5 uppercase tracking-wider">Direction</label>
+                                    <select id="type" class="input-ultra text-xs font-bold p-2 h-[42px] cursor-pointer">
                                         <option value="LONG">LONG (Buy)</option>
                                         <option value="SHORT">SHORT (Sell)</option>
                                     </select>
                                 </div>
                                 <div>
-                                    <label class="block text-[10px] font-bold text-slate-400 mb-1 uppercase">Quantity</label>
+                                    <label class="block text-[10px] font-bold text-slate-400 mb-1.5 uppercase tracking-wider">Quantity</label>
                                     <input type="number" id="qty" placeholder="0" required step="any" min="0.001" class="input-ultra font-mono text-sm h-[42px]">
                                 </div>
                             </div>
                             <div class="p-4 bg-slate-900/60 rounded-xl border border-slate-700/50 shadow-inner">
-                                <label class="block text-[10px] font-bold text-sky-400 mb-1 uppercase">Entry Price</label>
+                                <label class="block text-[10px] font-bold text-sky-400 mb-1.5 uppercase tracking-wider">Entry Price</label>
                                 <input type="number" id="entry" placeholder="0.00" required step="any" class="input-ultra font-mono text-lg text-sky-400 font-bold bg-slate-950/50 border-sky-500/20 mb-3">
                                 <div class="grid grid-cols-2 gap-3">
                                     <div>
-                                        <label class="block text-[10px] font-bold text-rose-400 mb-1 uppercase">SL (%)</label>
+                                        <label class="block text-[10px] font-bold text-rose-400 mb-1.5 uppercase tracking-wider">SL (%)</label>
                                         <input type="number" id="sl_pct" placeholder="e.g. 1.5" step="any" class="input-ultra font-mono text-xs border-rose-900/30 bg-rose-950/20 text-rose-300">
                                     </div>
                                     <div>
-                                        <label class="block text-[10px] font-bold text-emerald-400 mb-1 uppercase">Target</label>
+                                        <label class="block text-[10px] font-bold text-emerald-400 mb-1.5 uppercase tracking-wider">Target</label>
                                         <input type="number" id="exit" placeholder="0.00" step="any" class="input-ultra font-mono text-xs border-emerald-900/30 bg-emerald-950/20 text-emerald-300">
                                     </div>
                                 </div>
@@ -171,7 +183,7 @@
                     </div>
                 </div>
 
-                <!-- Right Area: KPIs + Grid + Closed Ledger -->
+                <!-- Right Area: KPIs + Live Grid + Closed Ledger -->
                 <div class="xl:col-span-9 space-y-6">
                     
                     <!-- Top Toolbar -->
@@ -180,43 +192,42 @@
                             <span class="w-3 h-3 rounded-full bg-sky-500 live-glow"></span> LIVE PORTFOLIO GRID
                         </h2>
                         <div class="flex gap-2">
-                            <button onclick="requestNotificationPermission()" class="text-[10px] bg-purple-500/10 text-purple-300 px-4 py-2 rounded-lg uppercase font-bold border border-purple-500/20">🔔 Alerts</button>
-                            <button id="autoSyncBtn" class="text-[10px] bg-slate-800/80 text-slate-300 px-4 py-2 rounded-lg uppercase font-bold border border-slate-600">Syncing... ⌛</button>
+                            <button id="autoSyncBtn" class="text-[10px] bg-slate-800/80 text-slate-300 px-4 py-2 rounded-lg uppercase font-bold border border-slate-600 transition">Syncing... ⌛</button>
                         </div>
                     </div>
 
                     <!-- KPI Row -->
                     <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
                         <div class="glass-card kpi-card kpi-green p-5">
-                            <h3 class="text-[10px] text-slate-400 uppercase font-bold mb-1">Realized P&L</h3>
-                            <p id="netPnL" class="text-2xl font-black font-mono text-emerald-400">₹0.00</p>
+                            <h3 class="text-[10px] text-slate-400 uppercase font-bold mb-1 tracking-widest">Realized P&L</h3>
+                            <p id="netPnL" class="text-2xl font-black font-mono tracking-tight text-emerald-400">₹0.00</p>
                         </div>
                         <div class="glass-card kpi-card kpi-blue p-5">
-                            <h3 class="text-[10px] text-slate-400 uppercase font-bold mb-1">Win Rate</h3>
-                            <p id="winRateTxt" class="text-2xl font-black font-mono text-sky-400">0%</p>
+                            <h3 class="text-[10px] text-slate-400 uppercase font-bold mb-1 tracking-widest">Win Rate</h3>
+                            <p id="winRateTxt" class="text-2xl font-black font-mono tracking-tight text-sky-400">0%</p>
                         </div>
                         <div class="glass-card kpi-card kpi-purple p-5">
-                            <h3 class="text-[10px] text-slate-400 uppercase font-bold mb-1">Capital Deployed</h3>
-                            <p id="totalInvested" class="text-2xl font-black font-mono text-purple-400">₹0.00</p>
+                            <h3 class="text-[10px] text-slate-400 uppercase font-bold mb-1 tracking-widest">Capital Deployed</h3>
+                            <p id="totalInvested" class="text-2xl font-black font-mono tracking-tight text-purple-400">₹0.00</p>
                         </div>
                         <div class="glass-card kpi-card kpi-gray p-5">
-                            <h3 class="text-[10px] text-slate-400 uppercase font-bold mb-1">Unrealized P&L</h3>
-                            <p id="unrealizedPnL" class="text-2xl font-black font-mono text-slate-300">₹0.00</p>
+                            <h3 class="text-[10px] text-slate-400 uppercase font-bold mb-1 tracking-widest">Unrealized P&L</h3>
+                            <p id="unrealizedPnL" class="text-2xl font-black font-mono tracking-tight text-slate-300">₹0.00</p>
                         </div>
                     </div>
 
                     <!-- Dynamic Multi-Chart Grid (Valvo Style) -->
-                    <div id="multiChartContainer" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-2 gap-6"></div>
+                    <div id="multiChartContainer" class="grid grid-cols-1 md:grid-cols-2 gap-6"></div>
 
                     <!-- Closed Trades Ledger -->
                     <div class="glass-card overflow-hidden mt-8 opacity-90 border-t-2 border-slate-700">
                         <div class="p-4 border-b border-slate-800/50 bg-slate-900/40">
                             <h3 class="text-xs text-slate-400 font-bold uppercase tracking-widest">Closed Trade Ledger</h3>
                         </div>
-                        <div class="overflow-x-auto max-h-[300px]">
+                        <div class="overflow-x-auto max-h-[350px]">
                             <table class="w-full text-left text-sm whitespace-nowrap">
                                 <thead>
-                                    <tr class="bg-slate-900/50 text-[10px] text-slate-500 uppercase border-b border-slate-800/50 sticky top-0 backdrop-blur-md">
+                                    <tr class="bg-slate-900/80 text-[10px] text-slate-500 uppercase tracking-widest border-b border-slate-800/50 sticky top-0 backdrop-blur-md z-10">
                                         <th class="py-3 px-6">Asset & Date</th>
                                         <th class="py-3 px-6 text-center">Qty / Type</th>
                                         <th class="py-3 px-6">Entry → Exit</th>
@@ -236,23 +247,23 @@
     <!-- Edit Modal -->
     <div id="editModal" class="fixed inset-0 bg-black/90 backdrop-blur-md hidden items-center justify-center z-50">
         <div class="glass-card p-6 w-full max-w-sm border-sky-500/30">
-            <h3 class="text-sm font-black text-sky-400 mb-4 uppercase">✏️ Edit Position</h3>
+            <h3 class="text-sm font-black text-sky-400 mb-4 uppercase tracking-widest">✏️ Edit Position</h3>
             <input type="hidden" id="editTradeId">
             <div class="space-y-4 mb-6">
                 <div class="grid grid-cols-2 gap-3">
                     <div>
-                        <label class="block text-[10px] text-slate-400 mb-1">Quantity</label>
+                        <label class="block text-[10px] font-bold text-slate-400 mb-1 uppercase tracking-wider">Quantity</label>
                         <input type="number" id="editQty" step="any" required class="input-ultra font-mono text-sm">
                     </div>
                     <div>
-                        <label class="block text-[10px] text-slate-400 mb-1">Entry Price</label>
+                        <label class="block text-[10px] font-bold text-slate-400 mb-1 uppercase tracking-wider">Entry Price</label>
                         <input type="number" id="editEntry" step="any" required class="input-ultra font-mono text-sm text-sky-400">
                     </div>
                 </div>
             </div>
             <div class="flex gap-2">
-                <button onclick="closeEditModal()" class="flex-1 bg-slate-800 hover:bg-slate-700 text-white text-xs py-3 rounded-lg transition">Cancel</button>
-                <button onclick="submitEditTrade()" class="flex-1 bg-sky-600 hover:bg-sky-500 text-white text-xs py-3 rounded-lg font-bold transition">Save</button>
+                <button onclick="closeEditModal()" class="flex-1 bg-slate-800 hover:bg-slate-700 text-white text-xs py-3 rounded-xl font-bold transition uppercase">Cancel</button>
+                <button onclick="submitEditTrade()" class="flex-1 bg-gradient-to-r from-sky-600 to-blue-600 hover:from-sky-500 hover:to-blue-500 text-white text-xs py-3 rounded-xl font-bold transition uppercase">Save</button>
             </div>
         </div>
     </div>
@@ -260,13 +271,13 @@
     <!-- Close Modal -->
     <div id="closeModal" class="fixed inset-0 bg-black/90 backdrop-blur-md hidden items-center justify-center z-50">
         <div class="glass-card p-6 w-full max-w-sm border-purple-500/30">
-            <h3 class="text-sm font-black text-white mb-4 uppercase" id="modalTitle">Close Position</h3>
+            <h3 class="text-sm font-black text-white mb-4 uppercase tracking-widest" id="modalTitle">Close Position</h3>
             <input type="hidden" id="modalTradeId">
-            <label class="block text-[10px] text-slate-400 mb-1">Final Exit Price</label>
+            <label class="block text-[10px] font-bold text-slate-400 mb-1 uppercase tracking-wider">Final Exit Price</label>
             <input type="number" id="modalExitPrice" placeholder="0.00" step="any" class="input-ultra font-mono text-lg mb-6 text-purple-400">
             <div class="flex gap-2">
-                <button onclick="closeModalFunc()" class="flex-1 bg-slate-800 hover:bg-slate-700 text-white text-xs py-3 rounded-lg transition">Cancel</button>
-                <button onclick="submitCloseTrade()" class="flex-1 bg-purple-600 hover:bg-purple-500 text-white text-xs py-3 rounded-lg font-bold transition">Confirm</button>
+                <button onclick="closeModalFunc()" class="flex-1 bg-slate-800 hover:bg-slate-700 text-white text-xs py-3 rounded-xl font-bold transition uppercase">Cancel</button>
+                <button onclick="submitCloseTrade()" class="flex-1 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white text-xs py-3 rounded-xl font-bold transition uppercase">Confirm</button>
             </div>
         </div>
     </div>
@@ -290,6 +301,8 @@
         let trades = [];
         let currentUser = null;
         let dbRef = null;
+        
+        // Alert Sound Setup
         const alertSound = new Audio('https://actions.google.com/sounds/v1/alarms/beep_short.ogg');
 
         // ================= TICKERS (DYNAMIC LIVE FETCH) =================
@@ -306,6 +319,7 @@
                     datalist.innerHTML = optionsHTML;
                 }
             } catch (error) {
+                console.error("Symbol load error:", error);
                 const popularStocks = ["NIFTY", "RELIANCE", "TCS", "HDFCBANK", "INFY"];
                 let fallbackHTML = "";
                 popularStocks.forEach(s => fallbackHTML += `<option value="${s}"></option>`);
@@ -324,7 +338,7 @@
                 dbRef = fbDatabase.ref('users/' + currentUser + '/trades');
                 dbRef.on('value', (snapshot) => {
                     trades = snapshot.val() || [];
-                    renderUI(); // Updates KPIs and Calls renderMultiCharts
+                    renderUI(); // Updates KPIs & Ledger, then calls renderMultiCharts
                 });
             } else {
                 currentUser = null;
@@ -347,6 +361,7 @@
 
         // ================= EXPORT / IMPORT =================
         function exportData() {
+            if (trades.length === 0) return alert("No data to export!");
             const exportArr = trades.map(t => ({ "ID": t.id, "Date": t.date, "Symbol": t.symbol, "Type": t.type, "Quantity": t.qty, "Entry Price": t.entry, "Exit Price": t.exit || "", "Realized P&L": t.pnl || 0, "Status": t.status }));
             const ws = XLSX.utils.json_to_sheet(exportArr);
             const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "QuantumTrades");
@@ -360,13 +375,15 @@
                 try {
                     const workbook = XLSX.read(new Uint8Array(e.target.result), { type: 'array' });
                     const json = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]]);
+                    let count = 0;
                     json.forEach(row => {
                         const tradeId = row["ID"] || Date.now() + Math.random();
                         if (!trades.find(t => t.id === tradeId)) {
-                            trades.push({ id: tradeId, date: row["Date"] || new Date().toLocaleDateString(), symbol: row["Symbol"], type: row["Type"], qty: parseFloat(row["Quantity"]) || 0, entry: parseFloat(row["Entry Price"]) || 0, exit: parseFloat(row["Exit Price"]) || null, pnl: parseFloat(row["Realized P&L"]) || 0, status: row["Status"] || "OPEN", liveCMP: parseFloat(row["Entry Price"]) || 0, slHit: false });
+                            trades.push({ id: tradeId, date: row["Date"] || new Date().toLocaleDateString(), symbol: row["Symbol"], type: row["Type"], qty: parseFloat(row["Quantity"]) || 0, entry: parseFloat(row["Entry Price"]) || 0, sl: null, exit: parseFloat(row["Exit Price"]) || null, pnl: parseFloat(row["Realized P&L"]) || 0, status: row["Status"] || "OPEN", liveCMP: parseFloat(row["Entry Price"]) || 0, slHit: false });
+                            count++;
                         }
                     });
-                    trades.sort((a, b) => b.id - a.id); saveData(); alert("Imported successfully!");
+                    trades.sort((a, b) => b.id - a.id); saveData(); alert(`Imported ${count} new trades successfully!`);
                 } catch (err) { alert("Error parsing Excel file."); }
             }; reader.readAsArrayBuffer(file); event.target.value = '';
         }
@@ -387,23 +404,44 @@
             const type = document.getElementById('type').value;
             const qty = parseFloat(document.getElementById('qty').value);
             const entry = parseFloat(document.getElementById('entry').value);
+            
+            const slPctVal = document.getElementById('sl_pct').value;
+            let sl = null;
+            if (slPctVal !== "" && !isNaN(slPctVal)) {
+                sl = type === 'LONG' ? entry - (entry * parseFloat(slPctVal) / 100) : entry + (entry * parseFloat(slPctVal) / 100);
+            }
+
             const exitVal = document.getElementById('exit').value;
             const isClosed = exitVal !== "" && !isNaN(exitVal);
             const exit = isClosed ? parseFloat(exitVal) : null;
             let pnl = isClosed ? (type === 'LONG' ? (exit - entry) * qty : (entry - exit) * qty) : 0;
-            const dateStr = new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short' });
+            const dateStr = new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
             
-            trades.unshift({ id: Date.now(), date: dateStr, symbol, type, qty, entry, sl: null, exit, pnl, status: isClosed ? 'CLOSED' : 'OPEN', liveCMP: entry, slHit: false });
+            trades.unshift({ id: Date.now(), date: dateStr, symbol, type, qty, entry, sl: sl, exit, pnl, status: isClosed ? 'CLOSED' : 'OPEN', liveCMP: entry, slHit: false });
             saveData(); this.reset(); document.getElementById('symbol').focus();
             subscribeOpenTrades();
         });
 
-        function deleteTrade(id) { if (confirm("Delete this trade?")) { trades = trades.filter(t => t.id !== id); saveData(); } }
+        function deleteTrade(id) { if (confirm("Delete this trade entirely?")) { trades = trades.filter(t => t.id !== id); saveData(); } }
         
         function updateLiveCMP(id, newCMP) {
             const val = parseFloat(newCMP); if (isNaN(val)) return;
             const idx = trades.findIndex(t => t.id === id);
-            if (idx > -1) { trades[idx].liveCMP = val; saveData(); }
+            if (idx > -1) { 
+                trades[idx].liveCMP = val; 
+                checkStopLoss(trades[idx]);
+                saveData(); 
+            }
+        }
+
+        function checkStopLoss(trade) {
+            if (trade.sl && !trade.slHit) {
+                if ((trade.type === 'LONG' && trade.liveCMP <= trade.sl) || (trade.type === 'SHORT' && trade.liveCMP >= trade.sl)) {
+                    trade.slHit = true; saveData();
+                    alertSound.play().catch(() => {});
+                    alert(`🚨 SL HIT ALERT!\n\nSymbol: ${trade.symbol}\nType: ${trade.type}\nSL Price: ₹${trade.sl.toFixed(2)}\nCurrent Price: ₹${trade.liveCMP}`);
+                }
+            }
         }
 
         // ================= MODALS =================
@@ -426,7 +464,7 @@
         }
         function closeModalFunc() { document.getElementById('closeModal').style.display = 'none'; }
         function submitCloseTrade() {
-            const exit = parseFloat(document.getElementById('modalExitPrice').value); if (isNaN(exit)) return;
+            const exit = parseFloat(document.getElementById('modalExitPrice').value); if (isNaN(exit)) return alert("Please enter valid price");
             const t = trades.find(t => t.id === parseInt(document.getElementById('modalTradeId').value));
             if (t) { t.exit = exit; t.status = 'CLOSED'; t.pnl = t.type === 'LONG' ? (exit - t.entry) * t.qty : (t.entry - exit) * t.qty; saveData(); closeModalFunc(); document.getElementById('modalExitPrice').value = ''; }
         }
@@ -445,33 +483,50 @@
                     totalRealizedPnL += t.pnl; closedCount++; if (t.pnl > 0) totalWins++;
                     const pnlColor = t.pnl >= 0 ? 'text-emerald-400' : 'text-rose-400';
                     closedBody.innerHTML += `
-                    <tr class="hover:bg-slate-800/30 transition-colors opacity-80 hover:opacity-100">
-                        <td class="py-2 px-6"><div class="font-bold text-slate-200 font-mono text-xs">${t.symbol}</div><div class="text-[9px] text-slate-500">${t.date}</div></td>
-                        <td class="py-2 px-6 text-center"><span class="font-black font-mono text-slate-300 mr-2">${t.qty}</span><span class="${t.type === 'LONG' ? 'text-emerald-500 border-emerald-500/20' : 'text-rose-500 border-rose-500/20'} border px-1 rounded text-[9px]">${t.type}</span></td>
-                        <td class="py-2 px-6 font-mono text-xs"><span class="text-slate-400">₹${t.entry.toFixed(2)}</span> → <span class="text-slate-300">₹${t.exit.toFixed(2)}</span></td>
-                        <td class="py-2 px-6 font-black font-mono text-right ${pnlColor} text-sm">${t.pnl >= 0 ? '+' : ''}₹${t.pnl.toFixed(2)}</td>
-                        <td class="py-2 px-6 text-center"><button onclick="deleteTrade(${t.id})" class="text-slate-600 hover:text-rose-500 transition">❌</button></td>
+                    <tr class="hover:bg-slate-800/30 transition-colors opacity-80 hover:opacity-100 border-b border-slate-800/30">
+                        <td class="py-3 px-6"><div class="font-bold text-slate-200 font-mono text-sm">${t.symbol}</div><div class="text-[9px] text-slate-500 uppercase tracking-wider">${t.date}</div></td>
+                        <td class="py-3 px-6 text-center"><span class="font-black font-mono text-slate-300 mr-2 text-sm">${t.qty}</span><span class="${t.type === 'LONG' ? 'text-emerald-500 border-emerald-500/20 bg-emerald-500/10' : 'text-rose-500 border-rose-500/20 bg-rose-500/10'} border px-1.5 py-0.5 rounded text-[9px] font-bold uppercase">${t.type}</span></td>
+                        <td class="py-3 px-6 font-mono text-xs"><span class="text-slate-400">₹${t.entry.toFixed(2)}</span> <span class="text-slate-600 mx-1">→</span> <span class="text-slate-300">₹${t.exit.toFixed(2)}</span></td>
+                        <td class="py-3 px-6 font-black font-mono text-right ${pnlColor} text-base">${t.pnl >= 0 ? '+' : ''}₹${t.pnl.toFixed(2)}</td>
+                        <td class="py-3 px-6 text-center"><button onclick="deleteTrade(${t.id})" class="text-slate-500 hover:text-rose-500 hover:bg-rose-500/10 w-8 h-8 rounded flex items-center justify-center mx-auto transition">×</button></td>
                     </tr>`;
                 }
             });
 
             document.getElementById('netPnL').innerText = (totalRealizedPnL >= 0 ? '+' : '') + '₹' + totalRealizedPnL.toLocaleString('en-IN', { maximumFractionDigits: 2 });
-            document.getElementById('netPnL').className = `text-2xl font-black font-mono ${totalRealizedPnL >= 0 ? 'text-emerald-400' : 'text-rose-400'}`;
+            document.getElementById('netPnL').className = `text-2xl font-black font-mono tracking-tight ${totalRealizedPnL >= 0 ? 'text-emerald-400' : 'text-rose-400'}`;
             document.getElementById('winRateTxt').innerText = closedCount > 0 ? ((totalWins / closedCount) * 100).toFixed(1) + '%' : '0%';
             document.getElementById('totalInvested').innerText = '₹' + totalInvestedAmt.toLocaleString('en-IN', { maximumFractionDigits: 2 });
             document.getElementById('unrealizedPnL').innerText = (totalUnrealizedPnL >= 0 ? '+' : '') + '₹' + totalUnrealizedPnL.toLocaleString('en-IN', { maximumFractionDigits: 2 });
-            document.getElementById('unrealizedPnL').className = `text-2xl font-black font-mono ${totalUnrealizedPnL >= 0 ? 'text-emerald-400' : 'text-rose-400'}`;
+            document.getElementById('unrealizedPnL').className = `text-2xl font-black font-mono tracking-tight ${totalUnrealizedPnL >= 0 ? 'text-emerald-400' : 'text-rose-400'}`;
             
-            // Sync the Grid View
+            // Render the main Grid View
             renderMultiCharts();
         }
 
-        // ================= ANTI-FLICKER ADVANCED GRID RENDER =================
+        // ================= MARKET HOURS CHECKER =================
+        function isMarketOpen() {
+            const now = new Date();
+            const day = now.getDay(); // 0 = Sunday, 6 = Saturday
+            
+            if (day === 0 || day === 6) return false;
+            
+            const hours = now.getHours();
+            const minutes = now.getMinutes();
+            const currentTimeInMinutes = hours * 60 + minutes;
+            
+            const marketOpenTime = 9 * 60 + 15;  // 09:15 AM
+            const marketCloseTime = 15 * 60 + 30; // 03:30 PM
+            
+            return currentTimeInMinutes >= marketOpenTime && currentTimeInMinutes <= marketCloseTime;
+        }
+
+        // ================= ADVANCED GRID RENDER (Anti-Flicker & Valvo Style) =================
         function renderMultiCharts() {
             const container = document.getElementById('multiChartContainer');
             const openTrades = trades.filter(t => t.status === 'OPEN');
             
-            // Clean up deleted/closed cards
+            // Clean up deleted/closed cards from DOM to prevent ghost charts
             Array.from(container.children).forEach(child => {
                 if (child.id.startsWith('grid_card_')) {
                     const id = parseInt(child.id.split('_')[2]);
@@ -480,11 +535,13 @@
             });
 
             if (openTrades.length === 0) {
-                container.innerHTML = `<div class="col-span-full glass-card p-16 text-center text-slate-500 font-mono uppercase tracking-widest text-xs">No active positions to display.</div>`;
+                container.innerHTML = `<div class="col-span-full glass-card p-16 text-center text-slate-500 font-mono uppercase tracking-widest text-xs border border-slate-800 border-dashed">No active positions to display in grid.</div>`;
                 return;
             } else if (container.querySelector('.col-span-full')) {
                 container.innerHTML = '';
             }
+
+            const marketLive = isMarketOpen();
 
             openTrades.forEach(t => {
                 const cardId = 'grid_card_' + t.id;
@@ -497,50 +554,58 @@
                 const finalPct = t.type === 'LONG' ? profitPct : -profitPct;
                 const pnlColor = unrealized >= 0 ? 'text-emerald-400' : 'text-rose-400';
                 
+                // Day Change Calc
                 const prevClose = t.prevClose || t.entry; 
                 const dayChangeVal = t.type === 'LONG' ? (liveCMP - prevClose) * t.qty : (prevClose - liveCMP) * t.qty;
                 const dayColor = dayChangeVal >= 0 ? 'text-emerald-400' : 'text-rose-400';
 
+                const priceLabel = marketLive ? "CMP" : "LTP";
+                const slBadge = t.slHit ? `<span class="text-[8px] bg-rose-600 text-white px-1.5 py-0.5 rounded uppercase ml-2 animate-pulse">SL HIT</span>` : '';
+
                 let card = document.getElementById(cardId);
                 if (!card) {
-                    // Create card for the first time
                     card = document.createElement('div');
                     card.id = cardId;
-                    card.className = `glass-card flex flex-col h-[380px] overflow-hidden border border-slate-700/50 hover:border-sky-500/30 transition-all`;
+                    card.className = `glass-card flex flex-col h-[400px] overflow-hidden border border-slate-700/50 hover:border-sky-500/30 transition-all`;
                     
                     card.innerHTML = `
+                        <!-- TOP DATA BAR -->
                         <div class="px-4 py-3 bg-slate-900/80 flex justify-between items-start">
                             <div class="flex flex-col">
                                 <div class="flex items-center gap-2">
                                     <span class="font-black text-white font-mono text-lg">${t.symbol}</span>
                                     <span class="text-[9px] font-bold px-1.5 py-0.5 rounded border text-slate-400 border-slate-700">${t.type} x${t.qty}</span>
+                                    ${slBadge}
                                 </div>
                                 <span class="text-[10px] text-slate-400 font-mono mt-1">Invested: ₹${invested.toLocaleString('en-IN', {maximumFractionDigits:0})}</span>
                             </div>
                             <div class="text-right flex flex-col items-end">
                                 <span id="pct_${t.id}" class="font-black ${pnlColor} text-xl tracking-tight">${finalPct >= 0 ? '+' : ''}${finalPct.toFixed(2)}%</span>
-                                <div class="flex flex-col text-[9px] font-mono font-bold mt-1 gap-0.5">
+                                <div class="flex flex-col text-[10px] font-mono font-bold mt-1 gap-0.5">
                                     <span id="tot_${t.id}" class="${pnlColor}">Total: ${unrealized >= 0 ? '+' : ''}₹${unrealized.toFixed(2)}</span>
                                     <span id="day_${t.id}" class="${dayColor}">Day: ${dayChangeVal >= 0 ? '+' : ''}₹${dayChangeVal.toFixed(2)}</span>
                                 </div>
                             </div>
                         </div>
+                        
+                        <!-- TRADING VIEW CHART -->
                         <div id="${chartId}" class="w-full flex-1 bg-[#0f172a] border-y border-slate-800/50 min-h-[180px]"></div>
-                        <div class="px-4 py-2.5 bg-slate-950/80 flex justify-between items-center font-mono">
-                            <div class="flex flex-col text-[10px] text-slate-400 gap-1">
+                        
+                        <!-- BOTTOM CONTROL BAR -->
+                        <div class="px-4 py-3 bg-slate-950/80 flex justify-between items-center font-mono">
+                            <div class="flex flex-col text-[10px] text-slate-400 gap-1.5">
                                 <div>Entry: <span class="text-white font-bold ml-1">₹${t.entry.toFixed(2)}</span></div>
-                                <div>CMP: <input type="number" id="cmp_${t.id}" step="any" value="${liveCMP}" onchange="updateLiveCMP(${t.id}, this.value)" class="w-20 bg-slate-900 border border-slate-700 rounded px-1 py-0.5 text-sky-400 font-bold ml-1 outline-none text-right transition focus:border-sky-500"></div>
+                                <div class="flex items-center"><span id="label_${t.id}" class="w-7">${priceLabel}</span>: <input type="number" id="cmp_${t.id}" step="any" value="${liveCMP}" onchange="updateLiveCMP(${t.id}, this.value)" class="w-20 bg-slate-900/80 border border-slate-700/50 rounded px-1.5 py-1 text-sky-400 font-bold ml-1 outline-none text-right transition focus:border-sky-500 shadow-inner"></div>
                             </div>
-                            <div class="flex gap-1.5">
-                                <button onclick="openEditModal(${t.id})" class="text-[10px] bg-slate-800 hover:bg-blue-500/20 text-slate-400 hover:text-blue-400 px-2.5 py-1.5 rounded transition">✏️</button>
-                                <button onclick="openCloseModal(${t.id}, '${t.symbol}')" class="text-[10px] bg-slate-800 hover:bg-purple-500/20 text-slate-400 hover:text-purple-400 px-2.5 py-1.5 rounded transition">⏏️</button>
-                                <button onclick="deleteTrade(${t.id})" class="text-[10px] bg-slate-800 hover:bg-rose-500/20 text-slate-500 hover:text-rose-500 px-2.5 py-1.5 rounded transition">❌</button>
+                            <div class="flex gap-2">
+                                <button onclick="openEditModal(${t.id})" class="text-[10px] bg-slate-800/80 hover:bg-blue-500/20 text-slate-400 hover:text-blue-400 px-3 py-2 rounded-lg transition border border-slate-700">✏️</button>
+                                <button onclick="openCloseModal(${t.id}, '${t.symbol}')" class="text-[10px] bg-slate-800/80 hover:bg-purple-500/20 text-slate-400 hover:text-purple-400 px-3 py-2 rounded-lg transition border border-slate-700">⏏️</button>
+                                <button onclick="deleteTrade(${t.id})" class="text-[10px] bg-slate-800/80 hover:bg-rose-500/20 text-slate-500 hover:text-rose-500 px-3 py-2 rounded-lg transition border border-slate-700">❌</button>
                             </div>
                         </div>`;
                     
                     container.appendChild(card);
                     
-                    // Initialize TradingView widget ONLY once
                     new TradingView.widget({
                         "autosize": true, "symbol": formatTVSymbol(t.symbol), "interval": "D",
                         "timezone": "Asia/Kolkata", "theme": "dark", "style": "1", "locale": "in",
@@ -549,7 +614,8 @@
                         "save_image": false, "container_id": chartId
                     });
                 } else {
-                    // Update numbers dynamically if card already exists (Anti-Flicker)
+                    // Update Text seamlessly without reloading iframe
+                    document.getElementById(`label_${t.id}`).innerText = priceLabel;
                     document.getElementById(`pct_${t.id}`).className = `font-black ${pnlColor} text-xl tracking-tight`;
                     document.getElementById(`pct_${t.id}`).innerText = `${finalPct >= 0 ? '+' : ''}${finalPct.toFixed(2)}%`;
                     document.getElementById(`tot_${t.id}`).className = pnlColor;
@@ -569,20 +635,28 @@
 
         socket.on('connect', () => {
             const btn = document.getElementById('autoSyncBtn');
-            if(btn) { btn.innerHTML = "Live Sync: ON 🟢"; btn.className = "text-[10px] bg-emerald-500/20 text-emerald-400 px-4 py-2 rounded-lg uppercase font-bold border border-emerald-500/40"; }
+            if(btn) { 
+                btn.innerHTML = "Live Sync: ON 🟢"; 
+                btn.className = "text-[10px] bg-emerald-500/10 text-emerald-400 px-4 py-2 rounded-lg uppercase font-bold border border-emerald-500/30 tracking-wider shadow-[0_0_10px_rgba(16,185,129,0.2)]"; 
+            }
             subscribeOpenTrades();
         });
 
         socket.on('disconnect', () => {
             const btn = document.getElementById('autoSyncBtn');
-            if(btn) { btn.innerHTML = "Live Sync: OFF 🔴"; btn.className = "text-[10px] bg-slate-800/80 text-slate-300 px-4 py-2 rounded-lg uppercase font-bold border border-slate-600"; }
+            if(btn) { 
+                btn.innerHTML = "Live Sync: OFF 🔴"; 
+                btn.className = "text-[10px] bg-slate-800/80 text-slate-300 px-4 py-2 rounded-lg uppercase font-bold border border-slate-600 tracking-wider"; 
+            }
         });
 
         socket.on('live_price', (data) => {
             let isUpdated = false;
             trades.forEach(t => {
                 if (t.status === 'OPEN' && t.symbol === data.symbol) {
-                    t.liveCMP = parseFloat(data.price); isUpdated = true;
+                    t.liveCMP = parseFloat(data.price); 
+                    checkStopLoss(t);
+                    isUpdated = true;
                 }
             });
             if (isUpdated) { saveData(); renderUI(); }
