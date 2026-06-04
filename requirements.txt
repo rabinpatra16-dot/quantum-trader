@@ -7,3 +7,4 @@ aiohttp==3.8.4
 gunicorn==21.2.0
 firebase-admin==6.5.0
 requests==2.31.0
+yfinance
