@@ -19,6 +19,8 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script type="text/javascript" src="https://s3.tradingview.com/tv.js"></script>
     
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+    
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700;800&display=swap" rel="stylesheet">
     
     <style>
@@ -224,8 +226,8 @@
                             </h3>
                             <div class="flex flex-wrap gap-2">
                                 <button onclick="requestNotificationPermission()" class="text-[10px] bg-purple-500/10 hover:bg-purple-500/20 text-purple-300 px-4 py-2 rounded-lg uppercase font-bold tracking-wider transition border border-purple-500/20">🔔 Alerts</button>
-                                <button id="autoSyncBtn" onclick="toggleAutoSync()" class="text-[10px] bg-slate-800/80 hover:bg-slate-700 text-slate-300 px-4 py-2 rounded-lg uppercase font-bold tracking-wider transition border border-slate-600">Auto-Sync: OFF 🔴</button>
-                                <button onclick="fetchLiveCMPFromPython()" class="text-[10px] bg-sky-500/10 hover:bg-sky-500/30 text-sky-400 px-4 py-2 rounded-lg uppercase font-bold tracking-wider transition border border-sky-500/30">⚡ Sync Now</button>
+                                <button id="autoSyncBtn" class="text-[10px] bg-slate-800/80 hover:bg-slate-700 text-slate-300 px-4 py-2 rounded-lg uppercase font-bold tracking-wider transition border border-slate-600">Syncing... ⌛</button>
+                                <button onclick="fetchLiveCMPFromPython()" class="text-[10px] bg-sky-500/10 hover:bg-sky-500/30 text-sky-400 px-4 py-2 rounded-lg uppercase font-bold tracking-wider transition border border-sky-500/30">⚡ Sync Subscriptions</button>
                             </div>
                         </div>
                         <div class="overflow-x-auto">
@@ -284,7 +286,6 @@
         </div>
     </div>
 
-    <!-- Close Modal -->
     <div id="closeModal" class="fixed inset-0 bg-black/90 backdrop-blur-md hidden items-center justify-center z-50">
         <div class="glass-card p-8 w-full max-w-sm border-purple-500/30">
             <h3 class="text-sm font-black text-white mb-6 uppercase tracking-widest" id="modalTitle">Close Position</h3>
@@ -298,7 +299,6 @@
         </div>
     </div>
 
-    <!-- Edit Modal -->
     <div id="editModal" class="fixed inset-0 bg-black/90 backdrop-blur-md hidden items-center justify-center z-50">
         <div class="glass-card p-8 w-full max-w-sm border-sky-500/30">
             <h3 class="text-sm font-black text-sky-400 mb-6 uppercase tracking-widest">✏️ Edit Position</h3>
@@ -350,8 +350,6 @@
         const googleProvider = new firebase.auth.GoogleAuthProvider();
 
         let trades = [];
-        let autoSyncTimer = null;
-        let isAutoSyncing = false;
         let currentView = 'main';
         let currentUser = null;
         let dbRef = null;
@@ -601,6 +599,9 @@
             loadMainChart(symbol);
             this.reset();
             document.getElementById('symbol').focus();
+            
+            // নতুন ট্রেড নেওয়ার পর সার্ভারকে নতুন সিম্বল সাবস্ক্রাইব করতে বলা হচ্ছে
+            subscribeOpenTrades();
         });
 
         function clearHistory() { if (confirm("Wipe entire database?")) { trades = []; saveData(); } }
@@ -610,46 +611,6 @@
             const val = parseFloat(newCMP); if (isNaN(val)) return;
             const idx = trades.findIndex(t => t.id === id);
             if (idx > -1) { trades[idx].liveCMP = val; checkStopLoss(trades[idx]); saveData(); }
-        }
-
-        async function fetchLiveCMPFromPython() {
-            const openTrades = trades.filter(t => t.status === 'OPEN');
-            if (openTrades.length === 0) return;
-
-            // Bulk API — সব symbol একসাথে একটি request এ পাঠানো হচ্ছে
-            const symbolsStr = openTrades.map(t => t.symbol).join(',');
-            try {
-                const res = await fetch(`https://quantum-trader-api.onrender.com/api/prices?symbols=${symbolsStr}`);
-                const data = await res.json();
-                if (data.status === 'success') {
-                    openTrades.forEach(t => {
-                        if (data.prices[t.symbol] !== undefined) {
-                            t.liveCMP = data.prices[t.symbol];
-                            checkStopLoss(t);
-                        }
-                    });
-                }
-            } catch (e) {
-                console.error("Bulk price sync failed:", e);
-            }
-
-            saveData();
-            renderUI();
-        }
-
-        function toggleAutoSync() {
-            isAutoSyncing = !isAutoSyncing;
-            const btn = document.getElementById('autoSyncBtn');
-            if (isAutoSyncing) {
-                btn.innerHTML = "Auto-Sync: ON 🟢";
-                btn.className = "text-[10px] bg-emerald-500/20 text-emerald-400 px-4 py-2 rounded-lg uppercase font-bold border border-emerald-500/40";
-                fetchLiveCMPFromPython();
-                autoSyncTimer = setInterval(fetchLiveCMPFromPython, 15000);
-            } else {
-                btn.innerHTML = "Auto-Sync: OFF 🔴";
-                btn.className = "text-[10px] bg-slate-800/80 hover:bg-slate-700 text-slate-300 px-4 py-2 rounded-lg uppercase font-bold tracking-wider transition border border-slate-600";
-                clearInterval(autoSyncTimer);
-            }
         }
 
         // ================= MODALS =================
@@ -776,6 +737,70 @@
             document.getElementById('totalInvested').innerText = '₹' + totalInvestedAmt.toLocaleString('en-IN', { maximumFractionDigits: 2 });
             document.getElementById('unrealizedPnL').innerText = (totalUnrealizedPnL >= 0 ? '+' : '') + '₹' + totalUnrealizedPnL.toLocaleString('en-IN', { maximumFractionDigits: 2 });
             document.getElementById('unrealizedPnL').className = `text-3xl font-black font-mono tracking-tight ${totalUnrealizedPnL >= 0 ? 'text-emerald-400' : 'text-rose-400'}`;
+        }
+
+        // ================= WEBSOCKET LOGIC =================
+        const SERVER_URL = "https://quantum-trader-api.onrender.com"; 
+        const socket = io(SERVER_URL);
+
+        socket.on('connect', () => {
+            console.log("WebSocket Connected to Server!");
+            const btn = document.getElementById('autoSyncBtn');
+            if(btn) {
+                btn.innerHTML = "Live Sync: ON 🟢";
+                btn.className = "text-[10px] bg-emerald-500/20 text-emerald-400 px-4 py-2 rounded-lg uppercase font-bold border border-emerald-500/40";
+            }
+            subscribeOpenTrades();
+        });
+
+        socket.on('disconnect', () => {
+            console.log("WebSocket Disconnected!");
+            const btn = document.getElementById('autoSyncBtn');
+            if(btn) {
+                btn.innerHTML = "Live Sync: OFF 🔴";
+                btn.className = "text-[10px] bg-slate-800/80 text-slate-300 px-4 py-2 rounded-lg uppercase font-bold border border-slate-600";
+            }
+        });
+
+        socket.on('live_price', (data) => {
+            const symbol = data.symbol;
+            const price = parseFloat(data.price);
+            
+            let isUpdated = false;
+            trades.forEach(t => {
+                if (t.status === 'OPEN' && t.symbol === symbol) {
+                    t.liveCMP = price;
+                    checkStopLoss(t);
+                    isUpdated = true;
+                }
+            });
+
+            if (isUpdated) {
+                saveData();
+                renderUI();
+            }
+        });
+
+        async function subscribeOpenTrades() {
+            const openTrades = trades.filter(t => t.status === 'OPEN');
+            if (openTrades.length === 0) return;
+            
+            const symbols = openTrades.map(t => t.symbol);
+            try {
+                await fetch(`${SERVER_URL}/api/subscribe`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ symbols: symbols })
+                });
+            } catch (e) {
+                console.error("Subscription failed:", e);
+            }
+        }
+        
+        // Sync Now বাটনের জন্য ম্যানুয়াল রিকোয়েস্ট ফাংশন
+        function fetchLiveCMPFromPython() {
+            console.log("Manual Sync Triggered");
+            subscribeOpenTrades();
         }
     </script>
 </body>
