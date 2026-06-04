@@ -3,14 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>QuantumTrader | V8.7 PRO (Google Auth)</title>
+    <title>QuantumTrader | Grid Dashboard</title>
     
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#060b19">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/2933/2933116.png">
-
+    
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
@@ -19,6 +18,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script type="text/javascript" src="https://s3.tradingview.com/tv.js"></script>
     
+    <!-- Updated Superfast Socket.IO Link -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.2/socket.io.min.js"></script>
     
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700;800&display=swap" rel="stylesheet">
@@ -48,8 +48,7 @@
             -webkit-backdrop-filter: blur(20px);
             border: 1px solid var(--glass-border); 
             box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
-            border-radius: 20px;
-            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            border-radius: 16px;
         }
         .kpi-card { position: relative; overflow: hidden; }
         .kpi-card::before { content: ''; position: absolute; top: 0; left: 0; width: 4px; height: 100%; }
@@ -66,203 +65,161 @@
             width: 100%; 
             outline: none; 
             transition: all 0.3s ease; 
-            box-shadow: inset 0 2px 4px rgba(0,0,0,0.2);
         }
         .input-ultra:focus { 
             border-color: #38bdf8; 
-            box-shadow: inset 0 2px 4px rgba(0,0,0,0.2), 0 0 0 3px var(--accent-glow); 
             background: rgba(10, 15, 30, 0.9);
         }
         .btn-ultra { 
             background: linear-gradient(135deg, #0ea5e9 0%, #4f46e5 50%, #9333ea 100%); 
-            color: white; font-weight: 800; letter-spacing: 1px; padding: 14px; border-radius: 12px; 
-            border: 1px solid rgba(255,255,255,0.1); transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); 
-            box-shadow: 0 4px 15px rgba(79, 70, 229, 0.3);
+            color: white; font-weight: 800; padding: 14px; border-radius: 12px; 
+            transition: all 0.3s; box-shadow: 0 4px 15px rgba(79, 70, 229, 0.3);
         }
-        .btn-ultra:hover { transform: translateY(-3px); box-shadow: 0 12px 25px rgba(79, 70, 229, 0.5); filter: brightness(1.1); }
+        .btn-ultra:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(79, 70, 229, 0.5); filter: brightness(1.1); }
         ::-webkit-scrollbar { width: 6px; height: 6px; }
-        ::-webkit-scrollbar-track { background: rgba(0,0,0,0.2); border-radius: 10px; }
+        ::-webkit-scrollbar-track { background: rgba(0,0,0,0.2); }
         ::-webkit-scrollbar-thumb { background: rgba(56, 189, 248, 0.3); border-radius: 10px; }
-        ::-webkit-scrollbar-thumb:hover { background: rgba(56, 189, 248, 0.6); }
         .live-glow { animation: pulseGlow 2s infinite; }
         @keyframes pulseGlow { 0% { box-shadow: 0 0 0 0 rgba(56, 189, 248, 0.6); } 70% { box-shadow: 0 0 0 8px rgba(56, 189, 248, 0); } 100% { box-shadow: 0 0 0 0 rgba(56, 189, 248, 0); } }
-        .table-row-hover:hover { background: linear-gradient(90deg, rgba(56, 189, 248, 0.05) 0%, transparent 100%); border-left: 2px solid #38bdf8; }
+        /* Hide arrows from number input */
+        input[type=number]::-webkit-inner-spin-button, 
+        input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
     </style>
 </head>
 <body class="min-h-screen">
 
+    <!-- Auth Screen -->
     <div id="authScreen" class="fixed inset-0 bg-[#060b19] z-[100] flex items-center justify-center p-4">
         <div class="glass-card p-8 w-full max-w-md border-sky-500/30">
-            <h1 class="text-3xl font-black tracking-tighter mb-2 text-center">
-                QUANTUM<span class="text-transparent bg-clip-text bg-gradient-to-r from-sky-400 to-indigo-500">TRADER</span>
-            </h1>
-            <p class="text-xs text-slate-400 mb-8 text-center uppercase tracking-widest">Login to your workspace</p>
+            <h1 class="text-3xl font-black tracking-tighter mb-2 text-center">QUANTUM<span class="text-sky-400">TRADER</span></h1>
+            <p class="text-xs text-slate-400 mb-8 text-center uppercase">Login to your workspace</p>
             <input type="email" id="authEmail" placeholder="Email address" class="input-ultra font-mono text-sm mb-4">
             <input type="password" id="authPassword" placeholder="Password" class="input-ultra font-mono text-sm mb-6">
             <div class="flex gap-3">
                 <button onclick="loginUser()" class="flex-1 btn-ultra text-xs uppercase tracking-wider">Login</button>
-                <button onclick="signupUser()" class="flex-1 bg-slate-800 hover:bg-slate-700 text-white text-xs py-3.5 rounded-xl font-bold transition uppercase tracking-wider">Sign Up</button>
             </div>
             <div class="relative flex items-center py-5">
                 <div class="flex-grow border-t border-slate-700/50"></div>
-                <span class="flex-shrink-0 mx-4 text-slate-500 text-[10px] uppercase tracking-widest font-bold">OR</span>
+                <span class="flex-shrink-0 mx-4 text-slate-500 text-[10px] uppercase font-bold">OR</span>
                 <div class="flex-grow border-t border-slate-700/50"></div>
             </div>
-            <button onclick="loginWithGoogle()" class="w-full bg-slate-100 hover:bg-white text-slate-900 font-bold py-3.5 px-4 rounded-xl transition flex items-center justify-center gap-3 shadow-lg">
-                <svg class="w-5 h-5" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>
-                <span class="text-xs uppercase tracking-wider">Continue with Google</span>
+            <button onclick="loginWithGoogle()" class="w-full bg-slate-100 text-slate-900 font-bold py-3.5 rounded-xl transition flex justify-center items-center gap-3">
+                <span class="text-xs uppercase">Continue with Google</span>
             </button>
-            <p id="authError" class="text-rose-400 text-xs mt-4 text-center font-bold min-h-[16px]"></p>
+            <p id="authError" class="text-rose-400 text-xs mt-4 text-center font-bold"></p>
         </div>
     </div>
 
+    <!-- Main App Container -->
     <div id="appContainer" class="p-4 md:p-6 lg:p-8 hidden">
         <input type="file" id="importFile" accept=".xlsx, .xls" class="hidden" onchange="importData(event)">
-        <div class="max-w-[1600px] mx-auto">
-            <header class="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 bg-slate-900/30 p-6 rounded-2xl border border-slate-800/50 backdrop-blur-md">
+        
+        <div class="max-w-[1800px] mx-auto">
+            <!-- Header -->
+            <header class="flex justify-between items-center mb-8 bg-slate-900/40 p-5 rounded-2xl border border-slate-800/50 backdrop-blur-md">
                 <div>
-                    <h1 class="text-3xl md:text-4xl font-black tracking-tighter">
-                        QUANTUM<span class="text-transparent bg-clip-text bg-gradient-to-r from-sky-400 to-indigo-500">TRADER</span> 
-                        <span class="text-[10px] bg-sky-500/20 text-sky-400 border border-sky-500/30 px-2.5 py-1 rounded-full ml-2 align-middle font-bold tracking-widest">PRO V8.7</span>
-                    </h1>
-                    <p class="text-xs text-slate-400 mt-2 uppercase tracking-[0.2em] font-mono flex items-center gap-2">
-                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 live-glow"></span> Welcome, <span id="userEmailDisplay" class="text-sky-400 font-bold"></span>
-                    </p>
+                    <h1 class="text-2xl font-black tracking-tighter">QUANTUM<span class="text-sky-400">TRADER</span></h1>
+                    <p class="text-[10px] text-slate-400 mt-1 uppercase font-mono"><span class="w-1.5 h-1.5 inline-block rounded-full bg-emerald-500 live-glow mr-1"></span><span id="userEmailDisplay" class="text-sky-400"></span></p>
                 </div>
-                <div class="flex flex-wrap gap-2 mt-4 md:mt-0">
-                    <button onclick="toggleView('main')" id="btnMain" class="text-xs font-bold bg-sky-600/20 text-sky-400 px-4 py-2.5 rounded-xl transition border border-sky-500/30 shadow-[0_0_15px_rgba(56,189,248,0.1)]">📊 Dashboard</button>
-                    <button onclick="toggleView('grid')" id="btnGrid" class="text-xs font-bold text-slate-400 hover:text-white bg-slate-800/50 hover:bg-slate-800 px-4 py-2.5 rounded-xl transition border border-slate-700/50">🔲 Grid View</button>
-                    <div class="h-6 border-l border-slate-700/50 mx-1 hidden md:block mt-1.5"></div>
-                    <button onclick="triggerImport()" class="text-xs font-bold text-emerald-400 bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/20 px-3 py-2.5 rounded-xl transition">⬆️ Import</button>
-                    <button onclick="exportData()" class="text-xs font-bold text-blue-400 bg-blue-500/10 hover:bg-blue-500/20 border border-blue-500/20 px-3 py-2.5 rounded-xl transition">⬇️ Export</button>
-                    <button onclick="clearHistory()" class="text-xs font-bold text-rose-400 bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/20 px-3 py-2.5 rounded-xl transition">Wipe</button>
-                    <div class="h-6 border-l border-slate-700/50 mx-1 hidden md:block mt-1.5"></div>
-                    <button onclick="logoutUser()" class="text-xs font-bold text-slate-400 bg-slate-800/50 hover:bg-slate-700 border border-slate-700/50 px-3 py-2.5 rounded-xl transition">Logout</button>
+                <div class="flex gap-2">
+                    <button onclick="triggerImport()" class="text-xs font-bold text-emerald-400 bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/20 px-3 py-2 rounded-lg transition">⬆️ Import</button>
+                    <button onclick="exportData()" class="text-xs font-bold text-blue-400 bg-blue-500/10 hover:bg-blue-500/20 border border-blue-500/20 px-3 py-2 rounded-lg transition">⬇️ Export</button>
+                    <button onclick="logoutUser()" class="text-xs font-bold text-slate-400 bg-slate-800/50 hover:bg-slate-700 border border-slate-700/50 px-3 py-2 rounded-lg transition">Logout</button>
                 </div>
             </header>
 
-            <div id="view-main" class="grid grid-cols-1 xl:grid-cols-12 gap-6 transition-all duration-500">
+            <div class="grid grid-cols-1 xl:grid-cols-12 gap-6">
+                <!-- Left Sidebar: Trade Execution -->
                 <div class="xl:col-span-3 space-y-6 h-fit sticky top-6">
                     <div class="glass-card p-6 border-t-4 border-t-indigo-500">
                         <h2 class="text-xs font-bold text-white uppercase tracking-widest flex items-center gap-2 mb-6">🚀 Execute Order</h2>
-                        <form id="tradeForm" class="space-y-5">
-                            <div class="grid grid-cols-3 gap-3">
-                                <div class="col-span-2">
-                                    <label class="block text-[10px] font-bold text-slate-400 mb-1.5 uppercase tracking-wider">Symbol</label>
-                                    <input type="text" id="symbol" list="tickers" placeholder="e.g. RELIANCE" required autocomplete="off" class="input-ultra font-mono text-sm uppercase">
-                                    <datalist id="tickers"></datalist>
-                                </div>
-                                <div>
-                                    <label class="block text-[10px] font-bold text-slate-400 mb-1.5 uppercase tracking-wider">Tag</label>
-                                    <select id="tag" class="input-ultra text-xs h-[46px] p-2">
-                                        <option value="Scalp">Scalp</option>
-                                        <option value="Intraday">Intra</option>
-                                        <option value="Swing">Swing</option>
-                                    </select>
-                                </div>
+                        <form id="tradeForm" class="space-y-4">
+                            <div>
+                                <label class="block text-[10px] font-bold text-slate-400 mb-1 uppercase">Symbol</label>
+                                <input type="text" id="symbol" list="tickers" placeholder="e.g. RELIANCE" required autocomplete="off" class="input-ultra font-mono text-sm uppercase">
+                                <datalist id="tickers"></datalist>
                             </div>
                             <div class="grid grid-cols-2 gap-3">
                                 <div>
-                                    <label class="block text-[10px] font-bold text-slate-400 mb-1.5 uppercase tracking-wider">Direction</label>
-                                    <select id="type" class="input-ultra text-sm cursor-pointer font-bold">
+                                    <label class="block text-[10px] font-bold text-slate-400 mb-1 uppercase">Direction</label>
+                                    <select id="type" class="input-ultra text-xs font-bold p-2 h-[42px]">
                                         <option value="LONG">LONG (Buy)</option>
                                         <option value="SHORT">SHORT (Sell)</option>
                                     </select>
                                 </div>
                                 <div>
-                                    <label class="block text-[10px] font-bold text-slate-400 mb-1.5 uppercase tracking-wider">Quantity</label>
-                                    <input type="number" id="qty" placeholder="0" required step="any" min="0.001" class="input-ultra font-mono text-sm">
+                                    <label class="block text-[10px] font-bold text-slate-400 mb-1 uppercase">Quantity</label>
+                                    <input type="number" id="qty" placeholder="0" required step="any" min="0.001" class="input-ultra font-mono text-sm h-[42px]">
                                 </div>
                             </div>
-                            <div class="p-5 bg-slate-900/60 rounded-xl border border-slate-700/50 space-y-4 shadow-inner">
-                                <div>
-                                    <label class="block text-[10px] font-bold text-sky-400 mb-1.5 uppercase tracking-wider">Entry Price</label>
-                                    <input type="number" id="entry" placeholder="0.00" required step="any" class="input-ultra font-mono text-lg text-sky-400 font-bold bg-slate-950/50 border-sky-500/20">
-                                </div>
+                            <div class="p-4 bg-slate-900/60 rounded-xl border border-slate-700/50 shadow-inner">
+                                <label class="block text-[10px] font-bold text-sky-400 mb-1 uppercase">Entry Price</label>
+                                <input type="number" id="entry" placeholder="0.00" required step="any" class="input-ultra font-mono text-lg text-sky-400 font-bold bg-slate-950/50 border-sky-500/20 mb-3">
                                 <div class="grid grid-cols-2 gap-3">
                                     <div>
-                                        <label class="block text-[10px] font-bold text-rose-400 mb-1.5 uppercase tracking-wider">SL (%)</label>
+                                        <label class="block text-[10px] font-bold text-rose-400 mb-1 uppercase">SL (%)</label>
                                         <input type="number" id="sl_pct" placeholder="e.g. 1.5" step="any" class="input-ultra font-mono text-xs border-rose-900/30 bg-rose-950/20 text-rose-300">
                                     </div>
                                     <div>
-                                        <label class="block text-[10px] font-bold text-emerald-400 mb-1.5 uppercase tracking-wider">Target</label>
+                                        <label class="block text-[10px] font-bold text-emerald-400 mb-1 uppercase">Target</label>
                                         <input type="number" id="exit" placeholder="0.00" step="any" class="input-ultra font-mono text-xs border-emerald-900/30 bg-emerald-950/20 text-emerald-300">
                                     </div>
                                 </div>
                             </div>
-                            <button type="submit" class="w-full btn-ultra text-sm uppercase tracking-widest mt-4">Deploy Trade</button>
+                            <button type="submit" class="w-full btn-ultra text-xs uppercase tracking-widest mt-2">Deploy Trade</button>
                         </form>
                     </div>
                 </div>
 
+                <!-- Right Area: KPIs + Grid + Closed Ledger -->
                 <div class="xl:col-span-9 space-y-6">
-                    <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
-                        <div class="glass-card kpi-card kpi-green p-6">
-                            <h3 class="text-[10px] text-slate-400 uppercase font-bold tracking-widest mb-1">Realized P&L</h3>
-                            <p id="netPnL" class="text-3xl font-black font-mono tracking-tight text-emerald-400">₹0.00</p>
-                        </div>
-                        <div class="glass-card kpi-card kpi-blue p-6">
-                            <h3 class="text-[10px] text-slate-400 uppercase font-bold tracking-widest mb-1">Win Rate</h3>
-                            <p id="winRateTxt" class="text-3xl font-black font-mono tracking-tight text-sky-400">0%</p>
-                        </div>
-                        <div class="glass-card kpi-card kpi-purple p-6">
-                            <h3 class="text-[10px] text-slate-400 uppercase font-bold tracking-widest mb-1">Capital Deployed</h3>
-                            <p id="totalInvested" class="text-3xl font-black font-mono tracking-tight text-purple-400">₹0.00</p>
-                        </div>
-                        <div class="glass-card kpi-card kpi-gray p-6">
-                            <h3 class="text-[10px] text-slate-400 uppercase font-bold tracking-widest mb-1">Unrealized P&L</h3>
-                            <p id="unrealizedPnL" class="text-3xl font-black font-mono tracking-tight text-slate-300">₹0.00</p>
+                    
+                    <!-- Top Toolbar -->
+                    <div class="flex justify-between items-center bg-slate-900/30 p-4 rounded-xl border border-slate-800">
+                        <h2 class="text-sm font-black text-white flex items-center gap-3 tracking-wide">
+                            <span class="w-3 h-3 rounded-full bg-sky-500 live-glow"></span> LIVE PORTFOLIO GRID
+                        </h2>
+                        <div class="flex gap-2">
+                            <button onclick="requestNotificationPermission()" class="text-[10px] bg-purple-500/10 text-purple-300 px-4 py-2 rounded-lg uppercase font-bold border border-purple-500/20">🔔 Alerts</button>
+                            <button id="autoSyncBtn" class="text-[10px] bg-slate-800/80 text-slate-300 px-4 py-2 rounded-lg uppercase font-bold border border-slate-600">Syncing... ⌛</button>
                         </div>
                     </div>
 
-                    <div class="glass-card overflow-hidden h-[450px] relative p-1 border-t-2 border-t-slate-700">
-                        <div id="tv_chart_container" class="w-full h-full rounded-xl overflow-hidden bg-[#0f172a]"></div>
-                    </div>
-
-                    <div class="glass-card overflow-hidden">
-                        <div class="flex flex-col md:flex-row justify-between items-start md:items-center p-5 border-b border-slate-800/50 bg-slate-900/40">
-                            <h3 class="text-xs text-sky-400 font-black uppercase tracking-widest flex items-center gap-2 mb-3 md:mb-0">
-                                <span class="w-2.5 h-2.5 rounded-full bg-sky-400 live-glow"></span> Active Positions
-                            </h3>
-                            <div class="flex flex-wrap gap-2">
-                                <button onclick="requestNotificationPermission()" class="text-[10px] bg-purple-500/10 hover:bg-purple-500/20 text-purple-300 px-4 py-2 rounded-lg uppercase font-bold tracking-wider transition border border-purple-500/20">🔔 Alerts</button>
-                                <button id="autoSyncBtn" class="text-[10px] bg-slate-800/80 hover:bg-slate-700 text-slate-300 px-4 py-2 rounded-lg uppercase font-bold tracking-wider transition border border-slate-600">Syncing... ⌛</button>
-                                <button onclick="fetchLiveCMPFromPython()" class="text-[10px] bg-sky-500/10 hover:bg-sky-500/30 text-sky-400 px-4 py-2 rounded-lg uppercase font-bold tracking-wider transition border border-sky-500/30">⚡ Sync Subscriptions</button>
-                            </div>
+                    <!-- KPI Row -->
+                    <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                        <div class="glass-card kpi-card kpi-green p-5">
+                            <h3 class="text-[10px] text-slate-400 uppercase font-bold mb-1">Realized P&L</h3>
+                            <p id="netPnL" class="text-2xl font-black font-mono text-emerald-400">₹0.00</p>
                         </div>
-                        <div class="overflow-x-auto">
-                            <table class="w-full text-left text-sm whitespace-nowrap">
-                                <thead>
-                                    <tr class="bg-slate-900/80 text-[10px] text-slate-400 uppercase tracking-widest border-b border-slate-700/50">
-                                        <th class="py-4 px-6 font-semibold">Asset</th>
-                                        <th class="py-4 px-6 font-semibold text-center">Qty &amp; Type</th>
-                                        <th class="py-4 px-6 font-semibold">Entry / SL</th>
-                                        <th class="py-4 px-6 font-semibold">Capital (₹)</th>
-                                        <th class="py-4 px-6 font-semibold text-center">Live CMP</th>
-                                        <th class="py-4 px-6 font-semibold text-right">Net P&amp;L</th>
-                                        <th class="py-4 px-6 font-semibold text-center">Actions</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="openPositionsBody" class="divide-y divide-slate-800/40"></tbody>
-                            </table>
-                            <div id="noOpenState" class="p-12 text-center hidden bg-slate-900/10">
-                                <div class="text-4xl mb-3 opacity-20">📊</div>
-                                <p class="text-slate-500 font-mono text-xs uppercase tracking-widest">No active positions running</p>
-                            </div>
+                        <div class="glass-card kpi-card kpi-blue p-5">
+                            <h3 class="text-[10px] text-slate-400 uppercase font-bold mb-1">Win Rate</h3>
+                            <p id="winRateTxt" class="text-2xl font-black font-mono text-sky-400">0%</p>
+                        </div>
+                        <div class="glass-card kpi-card kpi-purple p-5">
+                            <h3 class="text-[10px] text-slate-400 uppercase font-bold mb-1">Capital Deployed</h3>
+                            <p id="totalInvested" class="text-2xl font-black font-mono text-purple-400">₹0.00</p>
+                        </div>
+                        <div class="glass-card kpi-card kpi-gray p-5">
+                            <h3 class="text-[10px] text-slate-400 uppercase font-bold mb-1">Unrealized P&L</h3>
+                            <p id="unrealizedPnL" class="text-2xl font-black font-mono text-slate-300">₹0.00</p>
                         </div>
                     </div>
 
-                    <div class="glass-card overflow-hidden opacity-90">
-                        <div class="p-5 border-b border-slate-800/50 bg-slate-900/20">
+                    <!-- Dynamic Multi-Chart Grid (Valvo Style) -->
+                    <div id="multiChartContainer" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-2 gap-6"></div>
+
+                    <!-- Closed Trades Ledger -->
+                    <div class="glass-card overflow-hidden mt-8 opacity-90 border-t-2 border-slate-700">
+                        <div class="p-4 border-b border-slate-800/50 bg-slate-900/40">
                             <h3 class="text-xs text-slate-400 font-bold uppercase tracking-widest">Closed Trade Ledger</h3>
                         </div>
-                        <div class="overflow-x-auto">
+                        <div class="overflow-x-auto max-h-[300px]">
                             <table class="w-full text-left text-sm whitespace-nowrap">
                                 <thead>
-                                    <tr class="bg-slate-900/50 text-[10px] text-slate-500 uppercase tracking-widest border-b border-slate-800/50">
-                                        <th class="py-3 px-6">Timeline &amp; Asset</th>
+                                    <tr class="bg-slate-900/50 text-[10px] text-slate-500 uppercase border-b border-slate-800/50 sticky top-0 backdrop-blur-md">
+                                        <th class="py-3 px-6">Asset & Date</th>
                                         <th class="py-3 px-6 text-center">Qty / Type</th>
-                                        <th class="py-3 px-6">Prices (In → Out)</th>
+                                        <th class="py-3 px-6">Entry → Exit</th>
                                         <th class="py-3 px-6 text-right">Realized P&amp;L</th>
                                         <th class="py-3 px-6 text-center">Action</th>
                                     </tr>
@@ -273,67 +230,49 @@
                     </div>
                 </div>
             </div>
-
-            <div id="view-grid" class="hidden transition-all duration-500">
-                <div class="mb-6 flex items-center justify-between bg-slate-900/30 p-4 rounded-xl border border-slate-800">
-                    <h2 class="text-lg font-black text-white flex items-center gap-3 tracking-wide">
-                        <span class="w-3 h-3 rounded-full bg-sky-500 live-glow"></span> Open Positions Grid
-                    </h2>
-                    <p class="text-xs text-slate-400 font-mono hidden md:block">Real-time synchronized visualization</p>
-                </div>
-                <div id="multiChartContainer" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6"></div>
-            </div>
         </div>
     </div>
 
-    <div id="closeModal" class="fixed inset-0 bg-black/90 backdrop-blur-md hidden items-center justify-center z-50">
-        <div class="glass-card p-8 w-full max-w-sm border-purple-500/30">
-            <h3 class="text-sm font-black text-white mb-6 uppercase tracking-widest" id="modalTitle">Close Position</h3>
-            <input type="hidden" id="modalTradeId">
-            <label class="block text-[10px] font-bold text-slate-400 mb-2 uppercase tracking-wider">Final Exit Price</label>
-            <input type="number" id="modalExitPrice" placeholder="0.00" step="any" class="input-ultra font-mono text-lg mb-6 text-purple-400 bg-purple-950/20 border-purple-500/20">
-            <div class="flex gap-3">
-                <button onclick="closeModalFunc()" class="flex-1 bg-slate-800 hover:bg-slate-700 text-white text-xs py-3.5 rounded-xl font-bold transition">Cancel</button>
-                <button onclick="submitCloseTrade()" class="flex-1 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white text-xs py-3.5 rounded-xl font-bold shadow-lg transition transform hover:-translate-y-1">Confirm Exit</button>
-            </div>
-        </div>
-    </div>
-
+    <!-- Edit Modal -->
     <div id="editModal" class="fixed inset-0 bg-black/90 backdrop-blur-md hidden items-center justify-center z-50">
-        <div class="glass-card p-8 w-full max-w-sm border-sky-500/30">
-            <h3 class="text-sm font-black text-sky-400 mb-6 uppercase tracking-widest">✏️ Edit Position</h3>
+        <div class="glass-card p-6 w-full max-w-sm border-sky-500/30">
+            <h3 class="text-sm font-black text-sky-400 mb-4 uppercase">✏️ Edit Position</h3>
             <input type="hidden" id="editTradeId">
-            <div class="space-y-5 mb-6">
-                <div class="grid grid-cols-2 gap-4">
+            <div class="space-y-4 mb-6">
+                <div class="grid grid-cols-2 gap-3">
                     <div>
-                        <label class="block text-[10px] font-bold text-slate-400 mb-2 uppercase">Quantity</label>
+                        <label class="block text-[10px] text-slate-400 mb-1">Quantity</label>
                         <input type="number" id="editQty" step="any" required class="input-ultra font-mono text-sm">
                     </div>
                     <div>
-                        <label class="block text-[10px] font-bold text-slate-400 mb-2 uppercase">Entry Price</label>
-                        <input type="number" id="editEntry" step="any" required class="input-ultra font-mono text-sm text-sky-400 bg-sky-950/20">
-                    </div>
-                </div>
-                <div class="grid grid-cols-2 gap-4">
-                    <div>
-                        <label class="block text-[10px] font-bold text-rose-400 mb-2 uppercase">SL Price</label>
-                        <input type="number" id="editSL" step="any" class="input-ultra font-mono text-xs border-rose-900/30 bg-rose-950/20 text-rose-300">
-                    </div>
-                    <div>
-                        <label class="block text-[10px] font-bold text-emerald-400 mb-2 uppercase">Target</label>
-                        <input type="number" id="editExit" step="any" class="input-ultra font-mono text-xs border-emerald-900/30 bg-emerald-950/20 text-emerald-300">
+                        <label class="block text-[10px] text-slate-400 mb-1">Entry Price</label>
+                        <input type="number" id="editEntry" step="any" required class="input-ultra font-mono text-sm text-sky-400">
                     </div>
                 </div>
             </div>
-            <div class="flex gap-3">
-                <button onclick="closeEditModal()" class="flex-1 bg-slate-800 hover:bg-slate-700 text-white text-xs py-3.5 rounded-xl font-bold transition">Cancel</button>
-                <button onclick="submitEditTrade()" class="flex-1 bg-gradient-to-r from-sky-600 to-blue-600 hover:from-sky-500 hover:to-blue-500 text-white text-xs py-3.5 rounded-xl font-bold shadow-lg transition transform hover:-translate-y-1">Save Changes</button>
+            <div class="flex gap-2">
+                <button onclick="closeEditModal()" class="flex-1 bg-slate-800 hover:bg-slate-700 text-white text-xs py-3 rounded-lg transition">Cancel</button>
+                <button onclick="submitEditTrade()" class="flex-1 bg-sky-600 hover:bg-sky-500 text-white text-xs py-3 rounded-lg font-bold transition">Save</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Close Modal -->
+    <div id="closeModal" class="fixed inset-0 bg-black/90 backdrop-blur-md hidden items-center justify-center z-50">
+        <div class="glass-card p-6 w-full max-w-sm border-purple-500/30">
+            <h3 class="text-sm font-black text-white mb-4 uppercase" id="modalTitle">Close Position</h3>
+            <input type="hidden" id="modalTradeId">
+            <label class="block text-[10px] text-slate-400 mb-1">Final Exit Price</label>
+            <input type="number" id="modalExitPrice" placeholder="0.00" step="any" class="input-ultra font-mono text-lg mb-6 text-purple-400">
+            <div class="flex gap-2">
+                <button onclick="closeModalFunc()" class="flex-1 bg-slate-800 hover:bg-slate-700 text-white text-xs py-3 rounded-lg transition">Cancel</button>
+                <button onclick="submitCloseTrade()" class="flex-1 bg-purple-600 hover:bg-purple-500 text-white text-xs py-3 rounded-lg font-bold transition">Confirm</button>
             </div>
         </div>
     </div>
 
     <script>
-        // ================= FIREBASE CONFIG & INIT =================
+        // ================= FIREBASE CONFIG =================
         const firebaseConfig = {
             apiKey: "AIzaSyCu9c7o5TYOrtplw6OJ7AIK13AxeqLUuEU",
             authDomain: "quantum-tracker-6fe30.firebaseapp.com",
@@ -343,17 +282,36 @@
             messagingSenderId: "691270990022",
             appId: "1:691270990022:web:3b11b58ed0fb2c2f4c7fc7"
         };
-
         firebase.initializeApp(firebaseConfig);
         const fbDatabase = firebase.database();
         const fbAuth = firebase.auth();
         const googleProvider = new firebase.auth.GoogleAuthProvider();
 
         let trades = [];
-        let currentView = 'main';
         let currentUser = null;
         let dbRef = null;
         const alertSound = new Audio('https://actions.google.com/sounds/v1/alarms/beep_short.ogg');
+
+        // ================= TICKERS (DYNAMIC LIVE FETCH) =================
+        document.addEventListener('DOMContentLoaded', async function() {
+            const datalist = document.getElementById('tickers');
+            try {
+                const response = await fetch('https://public.fyers.in/sym_details/NSE_CM.csv');
+                const csvText = await response.text();
+                const matches = csvText.match(/NSE:(.*?)-EQ/g);
+                if (matches) {
+                    const uniqueSymbols = [...new Set(matches.map(s => s.replace('NSE:', '').replace('-EQ', '')))];
+                    let optionsHTML = `<option value="NIFTY"></option><option value="BANKNIFTY"></option><option value="BTCUSDT"></option>`;
+                    uniqueSymbols.forEach(symbol => optionsHTML += `<option value="${symbol}"></option>`);
+                    datalist.innerHTML = optionsHTML;
+                }
+            } catch (error) {
+                const popularStocks = ["NIFTY", "RELIANCE", "TCS", "HDFCBANK", "INFY"];
+                let fallbackHTML = "";
+                popularStocks.forEach(s => fallbackHTML += `<option value="${s}"></option>`);
+                datalist.innerHTML = fallbackHTML;
+            }
+        });
 
         // ================= AUTH STATE =================
         fbAuth.onAuthStateChanged((user) => {
@@ -361,16 +319,13 @@
                 currentUser = user.uid;
                 document.getElementById('authScreen').style.display = 'none';
                 document.getElementById('appContainer').style.display = 'block';
-                const displayName = user.displayName || user.email;
-                document.getElementById('userEmailDisplay').innerText = displayName;
+                document.getElementById('userEmailDisplay').innerText = user.displayName || user.email;
                 if (dbRef) dbRef.off();
                 dbRef = fbDatabase.ref('users/' + currentUser + '/trades');
                 dbRef.on('value', (snapshot) => {
                     trades = snapshot.val() || [];
-                    renderUI();
-                    if (currentView === 'grid') renderMultiCharts();
+                    renderUI(); // Updates KPIs and Calls renderMultiCharts
                 });
-                loadMainChart("NIFTY");
             } else {
                 currentUser = null;
                 document.getElementById('authScreen').style.display = 'flex';
@@ -380,274 +335,75 @@
             }
         });
 
-        // ================= AUTH FUNCTIONS =================
         function loginUser() {
-            const email = document.getElementById('authEmail').value;
-            const password = document.getElementById('authPassword').value;
-            const errorText = document.getElementById('authError');
-            errorText.innerText = "লগইন হচ্ছে...";
-            fbAuth.signInWithEmailAndPassword(email, password)
-                .then(() => { errorText.innerText = ""; })
-                .catch((error) => { errorText.innerText = error.message; });
+            fbAuth.signInWithEmailAndPassword(document.getElementById('authEmail').value, document.getElementById('authPassword').value)
+                .catch((error) => { document.getElementById('authError').innerText = error.message; });
         }
-
-        function signupUser() {
-            const email = document.getElementById('authEmail').value;
-            const password = document.getElementById('authPassword').value;
-            const errorText = document.getElementById('authError');
-            errorText.innerText = "অ্যাকাউন্ট তৈরি হচ্ছে...";
-            fbAuth.createUserWithEmailAndPassword(email, password)
-                .then(() => { errorText.innerText = ""; })
-                .catch((error) => { errorText.innerText = error.message; });
-        }
-
         function loginWithGoogle() {
-            const errorText = document.getElementById('authError');
-            errorText.innerText = "Google Sign-in লোড হচ্ছে...";
-            fbAuth.signInWithPopup(googleProvider)
-                .then(() => { errorText.innerText = ""; })
-                .catch((error) => { errorText.innerText = "Google Sign-in সমস্যা: " + error.message; });
+            fbAuth.signInWithPopup(googleProvider).catch((error) => { document.getElementById('authError').innerText = error.message; });
         }
-
         function logoutUser() { fbAuth.signOut(); }
-
-        function saveData() {
-            if (currentUser) {
-                fbDatabase.ref('users/' + currentUser + '/trades').set(trades);
-            }
-        }
-
-        // ================= TICKERS (DYNAMIC LIVE FETCH) =================
-        document.addEventListener('DOMContentLoaded', async function() {
-            const datalist = document.getElementById('tickers');
-            try {
-                // Fetch live stock list from Fyers
-                const response = await fetch('https://public.fyers.in/sym_details/NSE_CM.csv');
-                const csvText = await response.text();
-                
-                // Filter Equity (-EQ) shares
-                const matches = csvText.match(/NSE:(.*?)-EQ/g);
-                
-                if (matches) {
-                    const uniqueSymbols = [...new Set(matches.map(s => s.replace('NSE:', '').replace('-EQ', '')))];
-                    
-                    let optionsHTML = `
-                        <option value="NIFTY"></option>
-                        <option value="BANKNIFTY"></option>
-                        <option value="FINNIFTY"></option>
-                        <option value="MIDCPNIFTY"></option>
-                        <option value="SENSEX"></option>
-                        <option value="BTCUSDT"></option>
-                    `;
-                    
-                    uniqueSymbols.forEach(symbol => {
-                        optionsHTML += `<option value="${symbol}"></option>`;
-                    });
-                    
-                    datalist.innerHTML = optionsHTML;
-                    console.log("✅ Successfully loaded " + uniqueSymbols.length + " live stock symbols!");
-                }
-            } catch (error) {
-                console.error("Error loading symbols:", error);
-                // Fallback to basic list if fetch fails
-                const popularStocks = ["NIFTY", "BANKNIFTY", "FINNIFTY", "SENSEX", "RELIANCE", "TCS", "HDFCBANK", "ICICIBANK", "INFY", "SBIN", "ITC", "TATAMOTORS", "ZOMATO", "BTCUSDT"];
-                let fallbackHTML = "";
-                popularStocks.forEach(s => {
-                    fallbackHTML += `<option value="${s}"></option>`;
-                });
-                datalist.innerHTML = fallbackHTML;
-            }
-        });
+        function saveData() { if (currentUser) fbDatabase.ref('users/' + currentUser + '/trades').set(trades); }
 
         // ================= EXPORT / IMPORT =================
         function exportData() {
-            if (trades.length === 0) return alert("No data to export!");
-            const exportArr = trades.map(t => ({
-                "ID": t.id, "Date": t.date, "Symbol": t.symbol, "Tag": t.tag,
-                "Type": t.type, "Quantity": t.qty, "Entry Price": t.entry,
-                "SL Price": t.sl || "", "Exit Price": t.exit || "",
-                "Realized P&L": t.pnl || 0, "Status": t.status
-            }));
+            const exportArr = trades.map(t => ({ "ID": t.id, "Date": t.date, "Symbol": t.symbol, "Type": t.type, "Quantity": t.qty, "Entry Price": t.entry, "Exit Price": t.exit || "", "Realized P&L": t.pnl || 0, "Status": t.status }));
             const ws = XLSX.utils.json_to_sheet(exportArr);
-            const wb = XLSX.utils.book_new();
-            XLSX.utils.book_append_sheet(wb, ws, "QuantumTrades");
+            const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "QuantumTrades");
             XLSX.writeFile(wb, "QuantumTrader_Backup_" + new Date().toISOString().split('T')[0] + ".xlsx");
         }
-
         function triggerImport() { document.getElementById('importFile').click(); }
-
         function importData(event) {
-            const file = event.target.files[0];
-            if (!file) return;
+            const file = event.target.files[0]; if (!file) return;
             const reader = new FileReader();
             reader.onload = function(e) {
                 try {
-                    const data = new Uint8Array(e.target.result);
-                    const workbook = XLSX.read(data, { type: 'array' });
+                    const workbook = XLSX.read(new Uint8Array(e.target.result), { type: 'array' });
                     const json = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]]);
-                    if (json.length === 0) return alert("Empty or invalid Excel file.");
-                    const existingIds = new Set(trades.map(t => t.id));
-                    let addedCount = 0;
                     json.forEach(row => {
                         const tradeId = row["ID"] || Date.now() + Math.random();
-                        if (!existingIds.has(tradeId)) {
-                            trades.push({
-                                id: tradeId, date: row["Date"] || new Date().toLocaleDateString(),
-                                symbol: row["Symbol"], tag: row["Tag"] || "Swing", type: row["Type"],
-                                qty: parseFloat(row["Quantity"]) || 0, entry: parseFloat(row["Entry Price"]) || 0,
-                                sl: parseFloat(row["SL Price"]) || null, exit: parseFloat(row["Exit Price"]) || null,
-                                pnl: parseFloat(row["Realized P&L"]) || 0, status: row["Status"] || "OPEN",
-                                liveCMP: parseFloat(row["Entry Price"]) || 0, slHit: false
-                            });
-                            addedCount++;
-                            existingIds.add(tradeId);
+                        if (!trades.find(t => t.id === tradeId)) {
+                            trades.push({ id: tradeId, date: row["Date"] || new Date().toLocaleDateString(), symbol: row["Symbol"], type: row["Type"], qty: parseFloat(row["Quantity"]) || 0, entry: parseFloat(row["Entry Price"]) || 0, exit: parseFloat(row["Exit Price"]) || null, pnl: parseFloat(row["Realized P&L"]) || 0, status: row["Status"] || "OPEN", liveCMP: parseFloat(row["Entry Price"]) || 0, slHit: false });
                         }
                     });
-                    trades.sort((a, b) => b.id - a.id);
-                    saveData();
-                    alert(`Imported ${addedCount} new trades!`);
+                    trades.sort((a, b) => b.id - a.id); saveData(); alert("Imported successfully!");
                 } catch (err) { alert("Error parsing Excel file."); }
-            };
-            reader.readAsArrayBuffer(file);
-            event.target.value = '';
+            }; reader.readAsArrayBuffer(file); event.target.value = '';
         }
 
-        // ================= TRADINGVIEW =================
+        // ================= TV SYMBOL FORMATTER =================
         function formatTVSymbol(symbol) {
             if (symbol === "NIFTY") return "BSE:NIFTY50";
             if (symbol === "BANKNIFTY") return "BSE:BANKNIFTY";
-            if (symbol === "SENSEX") return "BSE:SENSEX";
             if (symbol.includes("USDT") || symbol.includes("BTC")) return "BINANCE:" + symbol;
             if (!symbol.includes(":")) return "BSE:" + symbol;
             return symbol;
         }
 
-        function loadMainChart(symbol) {
-            document.getElementById('tv_chart_container').innerHTML = '';
-            new TradingView.widget({
-                "autosize": true, "symbol": formatTVSymbol(symbol), "interval": "D",
-                "timezone": "Asia/Kolkata", "theme": "dark", "style": "1", "locale": "in",
-                "enable_publishing": false, "backgroundColor": "#0f172a", "gridColor": "#1e293b",
-                "hide_top_toolbar": false, "hide_side_toolbar": false, "allow_symbol_change": true,
-                "hide_legend": false, "save_image": false, "container_id": "tv_chart_container"
-            });
-        }
-
-        // ================= VIEW TOGGLE =================
-        function toggleView(view) {
-            currentView = view;
-            const btnMain = document.getElementById('btnMain');
-            const btnGrid = document.getElementById('btnGrid');
-            const viewMain = document.getElementById('view-main');
-            const viewGrid = document.getElementById('view-grid');
-            if (view === 'grid') {
-                viewMain.classList.add('hidden'); viewGrid.classList.remove('hidden');
-                btnGrid.className = "text-xs font-bold bg-sky-600/20 text-sky-400 px-4 py-2.5 rounded-xl transition border border-sky-500/30";
-                btnMain.className = "text-xs font-bold text-slate-400 hover:text-white bg-slate-800/50 hover:bg-slate-800 px-4 py-2.5 rounded-xl transition border border-slate-700/50";
-                renderMultiCharts();
-            } else {
-                viewGrid.classList.add('hidden'); viewMain.classList.remove('hidden');
-                btnMain.className = "text-xs font-bold bg-sky-600/20 text-sky-400 px-4 py-2.5 rounded-xl transition border border-sky-500/30";
-                btnGrid.className = "text-xs font-bold text-slate-400 hover:text-white bg-slate-800/50 hover:bg-slate-800 px-4 py-2.5 rounded-xl transition border border-slate-700/50";
-            }
-        }
-
-        function renderMultiCharts() {
-            const container = document.getElementById('multiChartContainer');
-            container.innerHTML = '';
-            const openTrades = trades.filter(t => t.status === 'OPEN');
-            if (openTrades.length === 0) {
-                container.innerHTML = `<div class="col-span-full glass-card p-16 text-center text-slate-500 font-mono uppercase tracking-widest text-xs">No active positions to display.</div>`;
-                return;
-            }
-            openTrades.forEach(t => {
-                const chartId = 'tv_mini_' + t.id;
-                const liveCMP = t.liveCMP || t.entry;
-                const invested = t.qty * t.entry;
-                const unrealized = t.type === 'LONG' ? (liveCMP - t.entry) * t.qty : (t.entry - liveCMP) * t.qty;
-                const profitPct = ((liveCMP - t.entry) / t.entry) * 100;
-                const finalPct = t.type === 'LONG' ? profitPct : -profitPct;
-                const pnlColor = unrealized >= 0 ? 'text-emerald-400' : 'text-rose-400';
-                const typeClass = t.type === 'LONG' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'bg-rose-500/10 text-rose-400 border-rose-500/20';
-                const card = document.createElement('div');
-                card.className = 'glass-card flex flex-col h-[380px] overflow-hidden border-t-4 border-t-sky-500/50';
-                card.innerHTML = `
-                    <div class="px-5 py-3 bg-slate-900/60 border-b border-slate-800/50 flex justify-between items-center">
-                        <span class="font-black text-white font-mono text-base cursor-pointer hover:text-sky-400 transition" onclick="loadMainChart('${t.symbol}'); toggleView('main');">${t.symbol}</span>
-                        <span class="text-[10px] font-bold px-2.5 py-1 rounded-full border ${typeClass}">${t.type} x${t.qty}</span>
-                    </div>
-                    <div class="px-5 py-3 bg-slate-950/80 border-b border-slate-800/50 flex flex-col font-mono">
-                        <div class="flex justify-between items-center mb-1">
-                            <span class="text-slate-400 text-[11px]">Invested: ₹${invested.toLocaleString('en-IN', {maximumFractionDigits:0})}</span>
-                            <span class="font-black ${pnlColor} text-base">${unrealized >= 0 ? '+' : ''}₹${unrealized.toFixed(2)}</span>
-                        </div>
-                        <div class="text-right text-[11px] font-bold ${pnlColor}">(${finalPct >= 0 ? '+' : ''}${finalPct.toFixed(2)}%)</div>
-                    </div>
-                    <div id="${chartId}" class="w-full flex-1 bg-[#0f172a]"></div>`;
-                container.appendChild(card);
-                new TradingView.widget({
-                    "autosize": true, "symbol": formatTVSymbol(t.symbol), "interval": "D",
-                    "timezone": "Asia/Kolkata", "theme": "dark", "style": "1", "locale": "in",
-                    "enable_publishing": false, "backgroundColor": "#0f172a",
-                    "hide_top_toolbar": true, "hide_side_toolbar": true, "hide_legend": true,
-                    "save_image": false, "container_id": chartId
-                });
-            });
-        }
-
-        // ================= STOP LOSS CHECK =================
-        function checkStopLoss(trade) {
-            if (trade.sl && !trade.slHit) {
-                if ((trade.type === 'LONG' && trade.liveCMP <= trade.sl) || (trade.type === 'SHORT' && trade.liveCMP >= trade.sl)) {
-                    trade.slHit = true; saveData();
-                    const title = `SL HIT: ${trade.symbol}`;
-                    const body = `Type: ${trade.type} | SL: ₹${trade.sl.toFixed(2)} | CMP: ₹${trade.liveCMP}`;
-                    alertSound.play().catch(() => {});
-                    if ("Notification" in window && Notification.permission === "granted") {
-                        navigator.serviceWorker.ready.then(reg => {
-                            reg.showNotification(title, { body, icon: 'https://cdn-icons-png.flaticon.com/512/2933/2933116.png', vibrate: [200, 100, 200], requireInteraction: true });
-                        });
-                    } else { alert(`${title}\n\n${body}`); }
-                }
-            }
-        }
-
-        // ================= TRADE FORM =================
+        // ================= TRADE MANAGEMENT =================
         document.getElementById('tradeForm').addEventListener('submit', function(e) {
             e.preventDefault();
             const symbol = document.getElementById('symbol').value.toUpperCase().trim();
-            const tag = document.getElementById('tag').value;
             const type = document.getElementById('type').value;
             const qty = parseFloat(document.getElementById('qty').value);
             const entry = parseFloat(document.getElementById('entry').value);
-            const slPctVal = document.getElementById('sl_pct').value;
-            let sl = null;
-            if (slPctVal !== "" && !isNaN(slPctVal)) {
-                sl = type === 'LONG' ? entry - (entry * parseFloat(slPctVal) / 100) : entry + (entry * parseFloat(slPctVal) / 100);
-            }
             const exitVal = document.getElementById('exit').value;
             const isClosed = exitVal !== "" && !isNaN(exitVal);
             const exit = isClosed ? parseFloat(exitVal) : null;
-            const now = new Date();
-            const dateStr = now.toLocaleDateString('en-GB', { day: '2-digit', month: 'short' }) + ' ' + now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
             let pnl = isClosed ? (type === 'LONG' ? (exit - entry) * qty : (entry - exit) * qty) : 0;
-            trades.unshift({ id: Date.now(), date: dateStr, symbol, tag, type, qty, entry, sl, exit, pnl, status: isClosed ? 'CLOSED' : 'OPEN', liveCMP: entry, slHit: false });
-            saveData();
-            loadMainChart(symbol);
-            this.reset();
-            document.getElementById('symbol').focus();
+            const dateStr = new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short' });
             
-            // নতুন ট্রেড নেওয়ার পর সার্ভারকে নতুন সিম্বল সাবস্ক্রাইব করতে বলা হচ্ছে
+            trades.unshift({ id: Date.now(), date: dateStr, symbol, type, qty, entry, sl: null, exit, pnl, status: isClosed ? 'CLOSED' : 'OPEN', liveCMP: entry, slHit: false });
+            saveData(); this.reset(); document.getElementById('symbol').focus();
             subscribeOpenTrades();
         });
 
-        function clearHistory() { if (confirm("Wipe entire database?")) { trades = []; saveData(); } }
         function deleteTrade(id) { if (confirm("Delete this trade?")) { trades = trades.filter(t => t.id !== id); saveData(); } }
-
+        
         function updateLiveCMP(id, newCMP) {
             const val = parseFloat(newCMP); if (isNaN(val)) return;
             const idx = trades.findIndex(t => t.id === id);
-            if (idx > -1) { trades[idx].liveCMP = val; checkStopLoss(trades[idx]); saveData(); }
+            if (idx > -1) { trades[idx].liveCMP = val; saveData(); }
         }
 
         // ================= MODALS =================
@@ -656,124 +412,155 @@
             document.getElementById('editTradeId').value = id;
             document.getElementById('editQty').value = t.qty;
             document.getElementById('editEntry').value = t.entry;
-            document.getElementById('editSL').value = t.sl || '';
-            document.getElementById('editExit').value = t.exit || '';
             document.getElementById('editModal').style.display = 'flex';
         }
         function closeEditModal() { document.getElementById('editModal').style.display = 'none'; }
-
         function submitEditTrade() {
-            const id = parseInt(document.getElementById('editTradeId').value);
-            const t = trades.find(t => t.id === id);
-            if (t) {
-                t.qty = parseFloat(document.getElementById('editQty').value) || t.qty;
-                t.entry = parseFloat(document.getElementById('editEntry').value) || t.entry;
-                t.sl = document.getElementById('editSL').value ? parseFloat(document.getElementById('editSL').value) : null;
-                t.exit = document.getElementById('editExit').value ? parseFloat(document.getElementById('editExit').value) : null;
-                t.slHit = false;
-                saveData(); closeEditModal();
-            }
+            const t = trades.find(t => t.id === parseInt(document.getElementById('editTradeId').value));
+            if (t) { t.qty = parseFloat(document.getElementById('editQty').value) || t.qty; t.entry = parseFloat(document.getElementById('editEntry').value) || t.entry; saveData(); closeEditModal(); }
         }
 
         function openCloseModal(id, symbol) {
-            document.getElementById('modalTradeId').value = id;
-            document.getElementById('modalTitle').innerText = `Close ${symbol}`;
+            document.getElementById('modalTradeId').value = id; document.getElementById('modalTitle').innerText = `Close ${symbol}`;
             document.getElementById('closeModal').style.display = 'flex';
         }
         function closeModalFunc() { document.getElementById('closeModal').style.display = 'none'; }
-
         function submitCloseTrade() {
-            const id = parseInt(document.getElementById('modalTradeId').value);
-            const exit = parseFloat(document.getElementById('modalExitPrice').value);
-            if (isNaN(exit)) return alert("Invalid exit price");
-            const t = trades.find(t => t.id === id);
-            if (t) {
-                t.exit = exit; t.status = 'CLOSED';
-                t.pnl = t.type === 'LONG' ? (exit - t.entry) * t.qty : (t.entry - exit) * t.qty;
-                saveData(); closeModalFunc();
-                document.getElementById('modalExitPrice').value = '';
-            }
+            const exit = parseFloat(document.getElementById('modalExitPrice').value); if (isNaN(exit)) return;
+            const t = trades.find(t => t.id === parseInt(document.getElementById('modalTradeId').value));
+            if (t) { t.exit = exit; t.status = 'CLOSED'; t.pnl = t.type === 'LONG' ? (exit - t.entry) * t.qty : (t.entry - exit) * t.qty; saveData(); closeModalFunc(); document.getElementById('modalExitPrice').value = ''; }
         }
 
-        function requestNotificationPermission() {
-            if ("Notification" in window) {
-                Notification.requestPermission().then(p => alert(p === "granted" ? "Notifications enabled!" : "Notifications blocked."));
-            }
-        }
-
-        // ================= RENDER UI =================
+        // ================= RENDER UI (KPIs & Closed Ledger) =================
         function renderUI() {
-            const openBody = document.getElementById('openPositionsBody');
-            const closedBody = document.getElementById('closedTradeBody');
-            openBody.innerHTML = ''; closedBody.innerHTML = '';
             let totalRealizedPnL = 0, totalWins = 0, closedCount = 0, totalInvestedAmt = 0, totalUnrealizedPnL = 0;
-            const openTrades = trades.filter(t => t.status === 'OPEN');
-            const closedTrades = trades.filter(t => t.status === 'CLOSED');
-
-            if (openTrades.length === 0) {
-                document.getElementById('noOpenState').style.display = 'block';
-            } else {
-                document.getElementById('noOpenState').style.display = 'none';
-                openTrades.forEach(t => {
-                    const invested = t.qty * t.entry; totalInvestedAmt += invested;
+            const closedBody = document.getElementById('closedTradeBody'); closedBody.innerHTML = '';
+            
+            trades.forEach(t => {
+                if (t.status === 'OPEN') {
+                    totalInvestedAmt += t.qty * t.entry;
                     const liveCMP = t.liveCMP || t.entry;
-                    let unrealized = t.type === 'LONG' ? (liveCMP - t.entry) * t.qty : (t.entry - liveCMP) * t.qty;
-                    totalUnrealizedPnL += unrealized;
-                    const profitPct = ((liveCMP - t.entry) / t.entry) * 100;
-                    const finalPct = t.type === 'LONG' ? profitPct : -profitPct;
-                    const pnlColor = unrealized >= 0 ? 'text-emerald-400' : 'text-rose-400';
-                    const typeClass = t.type === 'LONG' ? 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20' : 'text-rose-400 bg-rose-500/10 border-rose-500/20';
-                    const slBadge = t.sl ? `<div class="mt-1 inline-block text-[9px] px-1.5 py-0.5 rounded border ${t.slHit ? "text-rose-100 bg-rose-600 border-rose-500 font-bold" : "text-rose-400 bg-rose-500/10 border-rose-500/20"}">${t.slHit ? "SL HIT!" : 'SL: ₹' + t.sl.toFixed(2)}</div>` : '';
-                    openBody.innerHTML += `
-                    <tr class="table-row-hover border-b border-slate-800/40 cursor-default">
-                        <td class="py-4 px-6 font-black font-mono text-white text-[15px] cursor-pointer" onclick="loadMainChart('${t.symbol}')">${t.symbol}</td>
-                        <td class="py-4 px-6 text-center">
-                            <div class="font-black font-mono text-slate-200 text-sm mb-1">${t.qty}</div>
-                            <div class="text-[9px] font-bold px-1.5 py-0.5 rounded-full border inline-block uppercase ${typeClass}">${t.type}</div>
-                        </td>
-                        <td class="py-4 px-6 font-mono text-xs text-sky-300">₹${t.entry.toFixed(2)}${slBadge}</td>
-                        <td class="py-4 px-6 font-mono text-xs text-slate-400">₹${invested.toLocaleString('en-IN', {maximumFractionDigits:0})}</td>
-                        <td class="py-4 px-6 text-center">
-                            <input type="number" step="any" value="${liveCMP}" onchange="updateLiveCMP(${t.id}, this.value)" class="w-24 bg-slate-950/80 border border-slate-700/50 rounded-lg p-1.5 text-xs font-mono text-center text-white outline-none focus:border-sky-500 transition">
-                        </td>
-                        <td class="py-4 px-6 text-right font-mono">
-                            <div class="font-black text-sm ${pnlColor}">${unrealized >= 0 ? '+' : ''}₹${unrealized.toFixed(2)}</div>
-                            <div class="text-[10px] font-bold opacity-80 mt-0.5 ${pnlColor}">(${finalPct >= 0 ? '+' : ''}${finalPct.toFixed(2)}%)</div>
-                        </td>
-                        <td class="py-4 px-6 text-center">
-                            <div class="flex justify-center items-center gap-2">
-                                <button onclick="loadMainChart('${t.symbol}')" class="w-8 h-8 rounded-lg bg-slate-800 hover:bg-sky-500/20 text-slate-400 hover:text-sky-400 border border-slate-700 flex items-center justify-center transition">📉</button>
-                                <button onclick="openEditModal(${t.id})" class="w-8 h-8 rounded-lg bg-slate-800 hover:bg-blue-500/20 text-slate-400 hover:text-blue-400 border border-slate-700 flex items-center justify-center transition">✏️</button>
-                                <button onclick="openCloseModal(${t.id}, '${t.symbol}')" class="w-8 h-8 rounded-lg bg-slate-800 hover:bg-purple-500/20 text-slate-400 hover:text-purple-400 border border-slate-700 flex items-center justify-center transition">⏏️</button>
-                                <button onclick="deleteTrade(${t.id})" class="w-8 h-8 rounded-lg text-slate-500 hover:text-rose-500 hover:bg-rose-500/10 flex items-center justify-center transition">×</button>
-                            </div>
-                        </td>
+                    totalUnrealizedPnL += t.type === 'LONG' ? (liveCMP - t.entry) * t.qty : (t.entry - liveCMP) * t.qty;
+                } else {
+                    totalRealizedPnL += t.pnl; closedCount++; if (t.pnl > 0) totalWins++;
+                    const pnlColor = t.pnl >= 0 ? 'text-emerald-400' : 'text-rose-400';
+                    closedBody.innerHTML += `
+                    <tr class="hover:bg-slate-800/30 transition-colors opacity-80 hover:opacity-100">
+                        <td class="py-2 px-6"><div class="font-bold text-slate-200 font-mono text-xs">${t.symbol}</div><div class="text-[9px] text-slate-500">${t.date}</div></td>
+                        <td class="py-2 px-6 text-center"><span class="font-black font-mono text-slate-300 mr-2">${t.qty}</span><span class="${t.type === 'LONG' ? 'text-emerald-500 border-emerald-500/20' : 'text-rose-500 border-rose-500/20'} border px-1 rounded text-[9px]">${t.type}</span></td>
+                        <td class="py-2 px-6 font-mono text-xs"><span class="text-slate-400">₹${t.entry.toFixed(2)}</span> → <span class="text-slate-300">₹${t.exit.toFixed(2)}</span></td>
+                        <td class="py-2 px-6 font-black font-mono text-right ${pnlColor} text-sm">${t.pnl >= 0 ? '+' : ''}₹${t.pnl.toFixed(2)}</td>
+                        <td class="py-2 px-6 text-center"><button onclick="deleteTrade(${t.id})" class="text-slate-600 hover:text-rose-500 transition">❌</button></td>
                     </tr>`;
-                });
-            }
-
-            closedTrades.forEach(t => {
-                totalRealizedPnL += t.pnl; closedCount++; if (t.pnl > 0) totalWins++;
-                const pnlColor = t.pnl >= 0 ? 'text-emerald-400' : 'text-rose-400';
-                closedBody.innerHTML += `
-                <tr class="hover:bg-slate-800/30 transition-colors opacity-75 hover:opacity-100">
-                    <td class="py-3 px-6"><div class="font-bold text-slate-200 font-mono text-sm">${t.symbol}</div><div class="text-[9px] text-slate-500 mt-0.5">${t.date}</div></td>
-                    <td class="py-3 px-6 text-center">
-                        <span class="font-black font-mono text-slate-300 mr-2">${t.qty}</span>
-                        <span class="${t.type === 'LONG' ? 'text-emerald-500 bg-emerald-500/10 border-emerald-500/20' : 'text-rose-500 bg-rose-500/10 border-rose-500/20'} px-1.5 py-0.5 rounded border text-[9px] font-bold">${t.type}</span>
-                    </td>
-                    <td class="py-3 px-6 font-mono text-xs"><span class="text-slate-400">₹${t.entry.toFixed(2)}</span> <span class="text-slate-600 mx-1">→</span> <span class="text-slate-300">₹${t.exit.toFixed(2)}</span></td>
-                    <td class="py-3 px-6 font-black font-mono text-right ${pnlColor} text-sm">${t.pnl >= 0 ? '+' : ''}₹${t.pnl.toFixed(2)}</td>
-                    <td class="py-3 px-6 text-center"><button onclick="deleteTrade(${t.id})" class="text-slate-600 hover:text-rose-500 w-6 h-6 rounded flex items-center justify-center mx-auto transition">×</button></td>
-                </tr>`;
+                }
             });
 
             document.getElementById('netPnL').innerText = (totalRealizedPnL >= 0 ? '+' : '') + '₹' + totalRealizedPnL.toLocaleString('en-IN', { maximumFractionDigits: 2 });
-            document.getElementById('netPnL').className = `text-3xl font-black font-mono tracking-tight ${totalRealizedPnL >= 0 ? 'text-emerald-400' : 'text-rose-400'}`;
+            document.getElementById('netPnL').className = `text-2xl font-black font-mono ${totalRealizedPnL >= 0 ? 'text-emerald-400' : 'text-rose-400'}`;
             document.getElementById('winRateTxt').innerText = closedCount > 0 ? ((totalWins / closedCount) * 100).toFixed(1) + '%' : '0%';
             document.getElementById('totalInvested').innerText = '₹' + totalInvestedAmt.toLocaleString('en-IN', { maximumFractionDigits: 2 });
             document.getElementById('unrealizedPnL').innerText = (totalUnrealizedPnL >= 0 ? '+' : '') + '₹' + totalUnrealizedPnL.toLocaleString('en-IN', { maximumFractionDigits: 2 });
-            document.getElementById('unrealizedPnL').className = `text-3xl font-black font-mono tracking-tight ${totalUnrealizedPnL >= 0 ? 'text-emerald-400' : 'text-rose-400'}`;
+            document.getElementById('unrealizedPnL').className = `text-2xl font-black font-mono ${totalUnrealizedPnL >= 0 ? 'text-emerald-400' : 'text-rose-400'}`;
+            
+            // Sync the Grid View
+            renderMultiCharts();
+        }
+
+        // ================= ANTI-FLICKER ADVANCED GRID RENDER =================
+        function renderMultiCharts() {
+            const container = document.getElementById('multiChartContainer');
+            const openTrades = trades.filter(t => t.status === 'OPEN');
+            
+            // Clean up deleted/closed cards
+            Array.from(container.children).forEach(child => {
+                if (child.id.startsWith('grid_card_')) {
+                    const id = parseInt(child.id.split('_')[2]);
+                    if (!openTrades.find(t => t.id === id)) child.remove();
+                }
+            });
+
+            if (openTrades.length === 0) {
+                container.innerHTML = `<div class="col-span-full glass-card p-16 text-center text-slate-500 font-mono uppercase tracking-widest text-xs">No active positions to display.</div>`;
+                return;
+            } else if (container.querySelector('.col-span-full')) {
+                container.innerHTML = '';
+            }
+
+            openTrades.forEach(t => {
+                const cardId = 'grid_card_' + t.id;
+                const chartId = 'tv_mini_' + t.id;
+                const liveCMP = t.liveCMP || t.entry;
+                const invested = t.qty * t.entry;
+                
+                const unrealized = t.type === 'LONG' ? (liveCMP - t.entry) * t.qty : (t.entry - liveCMP) * t.qty;
+                const profitPct = ((liveCMP - t.entry) / t.entry) * 100;
+                const finalPct = t.type === 'LONG' ? profitPct : -profitPct;
+                const pnlColor = unrealized >= 0 ? 'text-emerald-400' : 'text-rose-400';
+                
+                const prevClose = t.prevClose || t.entry; 
+                const dayChangeVal = t.type === 'LONG' ? (liveCMP - prevClose) * t.qty : (prevClose - liveCMP) * t.qty;
+                const dayColor = dayChangeVal >= 0 ? 'text-emerald-400' : 'text-rose-400';
+
+                let card = document.getElementById(cardId);
+                if (!card) {
+                    // Create card for the first time
+                    card = document.createElement('div');
+                    card.id = cardId;
+                    card.className = `glass-card flex flex-col h-[380px] overflow-hidden border border-slate-700/50 hover:border-sky-500/30 transition-all`;
+                    
+                    card.innerHTML = `
+                        <div class="px-4 py-3 bg-slate-900/80 flex justify-between items-start">
+                            <div class="flex flex-col">
+                                <div class="flex items-center gap-2">
+                                    <span class="font-black text-white font-mono text-lg">${t.symbol}</span>
+                                    <span class="text-[9px] font-bold px-1.5 py-0.5 rounded border text-slate-400 border-slate-700">${t.type} x${t.qty}</span>
+                                </div>
+                                <span class="text-[10px] text-slate-400 font-mono mt-1">Invested: ₹${invested.toLocaleString('en-IN', {maximumFractionDigits:0})}</span>
+                            </div>
+                            <div class="text-right flex flex-col items-end">
+                                <span id="pct_${t.id}" class="font-black ${pnlColor} text-xl tracking-tight">${finalPct >= 0 ? '+' : ''}${finalPct.toFixed(2)}%</span>
+                                <div class="flex flex-col text-[9px] font-mono font-bold mt-1 gap-0.5">
+                                    <span id="tot_${t.id}" class="${pnlColor}">Total: ${unrealized >= 0 ? '+' : ''}₹${unrealized.toFixed(2)}</span>
+                                    <span id="day_${t.id}" class="${dayColor}">Day: ${dayChangeVal >= 0 ? '+' : ''}₹${dayChangeVal.toFixed(2)}</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div id="${chartId}" class="w-full flex-1 bg-[#0f172a] border-y border-slate-800/50 min-h-[180px]"></div>
+                        <div class="px-4 py-2.5 bg-slate-950/80 flex justify-between items-center font-mono">
+                            <div class="flex flex-col text-[10px] text-slate-400 gap-1">
+                                <div>Entry: <span class="text-white font-bold ml-1">₹${t.entry.toFixed(2)}</span></div>
+                                <div>CMP: <input type="number" id="cmp_${t.id}" step="any" value="${liveCMP}" onchange="updateLiveCMP(${t.id}, this.value)" class="w-20 bg-slate-900 border border-slate-700 rounded px-1 py-0.5 text-sky-400 font-bold ml-1 outline-none text-right transition focus:border-sky-500"></div>
+                            </div>
+                            <div class="flex gap-1.5">
+                                <button onclick="openEditModal(${t.id})" class="text-[10px] bg-slate-800 hover:bg-blue-500/20 text-slate-400 hover:text-blue-400 px-2.5 py-1.5 rounded transition">✏️</button>
+                                <button onclick="openCloseModal(${t.id}, '${t.symbol}')" class="text-[10px] bg-slate-800 hover:bg-purple-500/20 text-slate-400 hover:text-purple-400 px-2.5 py-1.5 rounded transition">⏏️</button>
+                                <button onclick="deleteTrade(${t.id})" class="text-[10px] bg-slate-800 hover:bg-rose-500/20 text-slate-500 hover:text-rose-500 px-2.5 py-1.5 rounded transition">❌</button>
+                            </div>
+                        </div>`;
+                    
+                    container.appendChild(card);
+                    
+                    // Initialize TradingView widget ONLY once
+                    new TradingView.widget({
+                        "autosize": true, "symbol": formatTVSymbol(t.symbol), "interval": "D",
+                        "timezone": "Asia/Kolkata", "theme": "dark", "style": "1", "locale": "in",
+                        "enable_publishing": false, "backgroundColor": "#0f172a",
+                        "hide_top_toolbar": true, "hide_side_toolbar": true, "hide_legend": true,
+                        "save_image": false, "container_id": chartId
+                    });
+                } else {
+                    // Update numbers dynamically if card already exists (Anti-Flicker)
+                    document.getElementById(`pct_${t.id}`).className = `font-black ${pnlColor} text-xl tracking-tight`;
+                    document.getElementById(`pct_${t.id}`).innerText = `${finalPct >= 0 ? '+' : ''}${finalPct.toFixed(2)}%`;
+                    document.getElementById(`tot_${t.id}`).className = pnlColor;
+                    document.getElementById(`tot_${t.id}`).innerText = `Total: ${unrealized >= 0 ? '+' : ''}₹${unrealized.toFixed(2)}`;
+                    document.getElementById(`day_${t.id}`).className = dayColor;
+                    document.getElementById(`day_${t.id}`).innerText = `Day: ${dayChangeVal >= 0 ? '+' : ''}₹${dayChangeVal.toFixed(2)}`;
+                    
+                    const cmpInput = document.getElementById(`cmp_${t.id}`);
+                    if(document.activeElement !== cmpInput) cmpInput.value = liveCMP;
+                }
+            });
         }
 
         // ================= WEBSOCKET LOGIC =================
@@ -781,63 +568,32 @@
         const socket = io(SERVER_URL);
 
         socket.on('connect', () => {
-            console.log("WebSocket Connected to Server!");
             const btn = document.getElementById('autoSyncBtn');
-            if(btn) {
-                btn.innerHTML = "Live Sync: ON 🟢";
-                btn.className = "text-[10px] bg-emerald-500/20 text-emerald-400 px-4 py-2 rounded-lg uppercase font-bold border border-emerald-500/40";
-            }
+            if(btn) { btn.innerHTML = "Live Sync: ON 🟢"; btn.className = "text-[10px] bg-emerald-500/20 text-emerald-400 px-4 py-2 rounded-lg uppercase font-bold border border-emerald-500/40"; }
             subscribeOpenTrades();
         });
 
         socket.on('disconnect', () => {
-            console.log("WebSocket Disconnected!");
             const btn = document.getElementById('autoSyncBtn');
-            if(btn) {
-                btn.innerHTML = "Live Sync: OFF 🔴";
-                btn.className = "text-[10px] bg-slate-800/80 text-slate-300 px-4 py-2 rounded-lg uppercase font-bold border border-slate-600";
-            }
+            if(btn) { btn.innerHTML = "Live Sync: OFF 🔴"; btn.className = "text-[10px] bg-slate-800/80 text-slate-300 px-4 py-2 rounded-lg uppercase font-bold border border-slate-600"; }
         });
 
         socket.on('live_price', (data) => {
-            const symbol = data.symbol;
-            const price = parseFloat(data.price);
-            
             let isUpdated = false;
             trades.forEach(t => {
-                if (t.status === 'OPEN' && t.symbol === symbol) {
-                    t.liveCMP = price;
-                    checkStopLoss(t);
-                    isUpdated = true;
+                if (t.status === 'OPEN' && t.symbol === data.symbol) {
+                    t.liveCMP = parseFloat(data.price); isUpdated = true;
                 }
             });
-
-            if (isUpdated) {
-                saveData();
-                renderUI();
-            }
+            if (isUpdated) { saveData(); renderUI(); }
         });
 
         async function subscribeOpenTrades() {
-            const openTrades = trades.filter(t => t.status === 'OPEN');
-            if (openTrades.length === 0) return;
-            
-            const symbols = openTrades.map(t => t.symbol);
-            try {
-                await fetch(`${SERVER_URL}/api/subscribe`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ symbols: symbols })
-                });
-            } catch (e) {
-                console.error("Subscription failed:", e);
+            const symbols = trades.filter(t => t.status === 'OPEN').map(t => t.symbol);
+            if (symbols.length > 0) {
+                try { await fetch(`${SERVER_URL}/api/subscribe`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ symbols: symbols }) }); } 
+                catch (e) { console.error("Subscription failed:", e); }
             }
-        }
-        
-        // Sync Now বাটনের জন্য ম্যানুয়াল রিকোয়েস্ট ফাংশন
-        function fetchLiveCMPFromPython() {
-            console.log("Manual Sync Triggered");
-            subscribeOpenTrades();
         }
     </script>
 </body>
