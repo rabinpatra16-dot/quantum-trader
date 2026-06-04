@@ -9,7 +9,6 @@
     <meta name="theme-color" content="#060b19">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/2933/2933116.png">
 
     <!-- Firebase -->
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
@@ -24,7 +23,7 @@
     <!-- Superfast Socket.IO Link -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.2/socket.io.min.js"></script>
     
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700;800;900&display=swap" rel="stylesheet">
     
     <style>
         :root {
@@ -88,18 +87,17 @@
         input[type=number]::-webkit-inner-spin-button, 
         input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
 
-        /* ================= VALVO STYLE LIGHT THEME ================= */
+        /* ================= DEEP BLACK LIGHT THEME ================= */
         body.light-theme {
-            background-color: #f3f4f6; /* Light gray background */
+            background-color: #f3f4f6; 
             background-image: none;
-            color: #111827;
+            color: #000000;
         }
         body.light-theme .glass-card {
             background: #ffffff;
-            border-color: #e5e7eb;
-            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.04);
+            border-color: #d1d5db;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
         }
-        /* Override Dark Backgrounds */
         body.light-theme .bg-slate-900\/40,
         body.light-theme .bg-slate-900\/80,
         body.light-theme .bg-slate-950\/50,
@@ -107,32 +105,37 @@
         body.light-theme .bg-\[\#0f172a\] {
             background: #ffffff !important;
         }
-        /* Override Text Colors */
-        body.light-theme .text-white { color: #111827 !important; }
+        
+        /* Deep Black Overrides */
+        body.light-theme .text-white,
         body.light-theme .text-slate-200,
-        body.light-theme .text-slate-300 { color: #374151 !important; }
+        body.light-theme .text-slate-300,
         body.light-theme .text-slate-400,
-        body.light-theme .text-slate-500 { color: #6b7280 !important; }
-        /* Override Borders */
+        body.light-theme .text-slate-500,
+        body.light-theme .text-slate-600 { 
+            color: #000000 !important; 
+            font-weight: 700 !important; /* Make it bolder to pop out */
+        }
+        
         body.light-theme .border-slate-800,
         body.light-theme .border-slate-800\/50,
         body.light-theme .border-slate-700,
-        body.light-theme .border-slate-700\/50 { border-color: #e5e7eb !important; }
-        /* Inputs */
+        body.light-theme .border-slate-700\/50 { border-color: #cbd5e1 !important; }
+        
         body.light-theme .input-ultra {
-            background: #f9fafb; border-color: #d1d5db; color: #111827;
+            background: #ffffff; border-color: #94a3b8; color: #000000;
+            font-weight: 700;
         }
-        body.light-theme .input-ultra:focus { border-color: #3b82f6; background: #ffffff; }
-        /* Buttons & Small Elements */
-        body.light-theme .bg-slate-800\/80 { background: #f3f4f6 !important; color: #4b5563 !important; border-color: #e5e7eb !important;}
+        body.light-theme .input-ultra:focus { border-color: #2563eb; }
+        
+        body.light-theme .bg-slate-800\/80 { background: #e2e8f0 !important; border-color: #cbd5e1 !important;}
         body.light-theme .bg-sky-900\/10 { background: #eff6ff !important; border-color: #bfdbfe !important; }
-        /* Vibrant Profit/Loss Colors for White Background */
-        body.light-theme .text-emerald-400 { color: #16a34a !important; }
-        body.light-theme .text-rose-400 { color: #e11d48 !important; }
-        body.light-theme .text-sky-400 { color: #0284c7 !important; }
+        
+        /* Retain bright colors for P&L */
+        body.light-theme .text-emerald-400 { color: #16a34a !important; font-weight: 900 !important; }
+        body.light-theme .text-rose-400 { color: #e11d48 !important; font-weight: 900 !important; }
+        body.light-theme .text-sky-400, body.light-theme .text-sky-500 { color: #2563eb !important; font-weight: 900 !important; }
         body.light-theme .text-purple-400 { color: #7e22ce !important; }
-        body.light-theme .border-emerald-500\/20 { border-color: #86efac !important; }
-        body.light-theme .border-rose-500\/20 { border-color: #fda4af !important; }
     </style>
 </head>
 <body class="min-h-screen">
@@ -174,9 +177,7 @@
                     </p>
                 </div>
                 <div class="flex gap-2">
-                    <!-- THEME TOGGLE BUTTON -->
                     <button id="themeToggleBtn" onclick="toggleTheme()" class="text-[10px] font-bold text-amber-500 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 px-4 py-2 rounded-lg transition uppercase tracking-wider shadow-sm">☀️ Light</button>
-                    
                     <button onclick="triggerImport()" class="text-[10px] font-bold text-emerald-400 bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/20 px-4 py-2 rounded-lg transition uppercase tracking-wider">⬆️ Import</button>
                     <button onclick="exportData()" class="text-[10px] font-bold text-blue-400 bg-blue-500/10 hover:bg-blue-500/20 border border-blue-500/20 px-4 py-2 rounded-lg transition uppercase tracking-wider">⬇️ Export</button>
                     <button onclick="logoutUser()" class="text-[10px] font-bold text-slate-400 bg-slate-800/50 hover:bg-slate-700 border border-slate-700/50 px-4 py-2 rounded-lg transition uppercase tracking-wider">Logout</button>
@@ -184,7 +185,7 @@
             </header>
 
             <div class="grid grid-cols-1 xl:grid-cols-12 gap-6">
-                <!-- Left Sidebar: Trade Execution -->
+                <!-- Left Sidebar -->
                 <div class="xl:col-span-3 space-y-6 h-fit sticky top-6">
                     <div class="glass-card p-6 border-t-4 border-t-indigo-500">
                         <h2 class="text-xs font-bold text-white uppercase tracking-widest flex items-center gap-2 mb-6">🚀 Execute Order</h2>
@@ -226,10 +227,8 @@
                     </div>
                 </div>
 
-                <!-- Right Area: KPIs + Live Grid + Closed Ledger -->
+                <!-- Right Area -->
                 <div class="xl:col-span-9 space-y-6">
-                    
-                    <!-- Top Toolbar -->
                     <div class="flex justify-between items-center bg-slate-900/30 p-4 rounded-xl border border-slate-800">
                         <h2 class="text-sm font-black text-white flex items-center gap-3 tracking-wide">
                             <span class="w-3 h-3 rounded-full bg-sky-500 live-glow"></span> LIVE PORTFOLIO GRID
@@ -241,17 +240,14 @@
 
                     <!-- KPI Row -->
                     <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                        <!-- Realized P&L -->
                         <div class="glass-card kpi-card kpi-green p-5 flex flex-col justify-between">
                             <h3 class="text-[10px] text-slate-400 uppercase font-bold mb-1 tracking-widest">Realized P&L</h3>
                             <p id="netPnL" class="text-2xl font-black font-mono tracking-tight text-emerald-400">₹0.00</p>
                         </div>
-                        <!-- Capital Deployed -->
                         <div class="glass-card kpi-card kpi-purple p-5 flex flex-col justify-between">
                             <h3 class="text-[10px] text-slate-400 uppercase font-bold mb-1 tracking-widest">Capital Deployed</h3>
                             <p id="totalInvested" class="text-2xl font-black font-mono tracking-tight text-purple-400">₹0.00</p>
                         </div>
-                        <!-- Combined Overall & Current Session P&L -->
                         <div class="glass-card kpi-card kpi-blue p-5 col-span-2 flex justify-between items-center border border-sky-500/20 bg-sky-900/10 shadow-[0_0_15px_rgba(14,165,233,0.1)]">
                             <div>
                                 <h3 class="text-[10px] text-slate-400 uppercase font-bold mb-1.5 tracking-widest">Overall Unrealized</h3>
@@ -361,7 +357,6 @@
                 btn.className = "text-[10px] font-bold text-amber-500 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 px-4 py-2 rounded-lg transition uppercase tracking-wider shadow-sm";
             }
             
-            // Force recreation of charts to apply new theme
             const container = document.getElementById('multiChartContainer');
             if(container) container.innerHTML = '';
             renderMultiCharts();
@@ -642,11 +637,11 @@
                         <!-- TRADING VIEW CHART -->
                         <div id="${chartId}" class="w-full flex-1 bg-[#0f172a] border-y border-slate-800/50 min-h-[180px]"></div>
                         
-                        <!-- BOTTOM CONTROL BAR -->
+                        <!-- BOTTOM CONTROL BAR (Removed Box for CMP/LTP) -->
                         <div class="px-4 py-3 bg-slate-950/80 flex justify-between items-center font-mono">
-                            <div class="flex flex-col text-xs text-slate-400 gap-1.5">
-                                <div>Entry: <span class="font-bold ml-1 text-sm">₹${t.entry.toFixed(2)}</span></div>
-                                <div class="flex items-center"><span id="label_${t.id}" class="w-8">${priceLabel}</span>: <span id="cmp_${t.id}" class="text-sky-400 font-black ml-1 text-sm bg-slate-900/50 px-2 py-0.5 rounded border border-slate-700/50">₹${liveCMP.toFixed(2)}</span></div>
+                            <div class="flex flex-col text-sm text-slate-400 gap-1.5">
+                                <div>Entry: <span class="font-bold ml-1 text-base">₹${t.entry.toFixed(2)}</span></div>
+                                <div class="flex items-center"><span id="label_${t.id}" class="w-8 font-bold">${priceLabel}</span>: <span id="cmp_${t.id}" class="text-sky-500 font-black ml-1 text-[15px]">₹${liveCMP.toFixed(2)}</span></div>
                             </div>
                             <div class="flex gap-2">
                                 <button onclick="openEditModal(${t.id})" class="text-xs bg-slate-800/80 hover:bg-blue-500/20 text-slate-400 hover:text-blue-400 px-3 py-2 rounded-lg transition border border-slate-700">✏️</button>
