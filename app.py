@@ -11,7 +11,7 @@ CORS(app)
 socketio = SocketIO(app, cors_allowed_origins="*", async_mode='eventlet')
 
 CLIENT_ID = "A735DXMG83-100"  
-ACCESS_TOKEN = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..." # আপনার পুরো টোকেনটি এখানে থাকবে
+ACCESS_TOKEN = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhdWQiOlsiZDoxIiwiZDoyIiwieDowIiwieDoxIiwieDoyIl0sImF0X2hhc2giOiJnQUFBQUFCcUlRWG9Rb1JoNXZOSzNScXVObE1FNk9sNlZPcmh1SmxCZVZRYzFwaThwRzBrb1RoTjJWeXdyVGI5Q1JpMXZZMDFVRkxhU200N0Z0Z2E0SEN0dlpFTkQxRW5MLW1yZURraUE2WmZKTzExeUR6a0xZWT0iLCJkaXNwbGF5X25hbWUiOiIiLCJvbXMiOiJLMSIsImhzbV9rZXkiOiIzYzRhZjA1OGFkNTVmNWJkOWMzNTZkN2U0M2I5NTdkYmRmMjI2ODhlOWI4MGE4YzA0ZTIwYTI4NCIsImlzRGRwaUVuYWJsZWQiOiJOIiwiaXNNdGZFbmFibGVkIjoiTiIsImZ5X2lkIjoiWE0yNTMyNSIsImFwcFR5cGUiOjEwMCwiZXhwIjoxNzgwNjE5NDAwLCJpYXQiOjE3ODA1NDkwOTYsImlzcyI6ImFwaS5meWVycy5pbiIsIm5iZiI6MTc4MDU0OTA5Niwic3ViIjoiYWNjZXNzX3Rva2VuIn0.4rQabZoNnQz6L9XKRtC16PoeG1zXNhH6A4Xbg-O9wXU" # আপনার পুরো টোকেনটি এখানে থাকবে
 WS_TOKEN = f"{CLIENT_ID}:{ACCESS_TOKEN}"
 
 # ==========================================
