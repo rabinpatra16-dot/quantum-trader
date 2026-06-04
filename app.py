@@ -9,7 +9,6 @@ from firebase_admin import credentials, db
 
 app = Flask(__name__)
 CORS(app)
-# এখানে eventlet-এর বদলে threading ব্যবহার করা হয়েছে
 socketio = SocketIO(app, cors_allowed_origins="*", async_mode='threading')
 
 CLIENT_ID = "A735DXMG83-100"
@@ -33,9 +32,10 @@ def get_token_from_firebase():
         return None
 
 # ==========================================
-# FYERS WEBSOCKET LOGIC
+# FYERS API & WEBSOCKET LOGIC
 # ==========================================
 fyers_ws = None
+fyers_api = None # Quotes API-এর জন্য নতুন ভেরিয়েবল
 
 def onmessage(message):
     if 'ltp' in message:
@@ -50,12 +50,15 @@ def onclose(message): print("WebSocket Closed:", message)
 def onopen(): print("Connected to Fyers WebSocket")
 
 def start_fyers_ws():
-    global fyers_ws
+    global fyers_ws, fyers_api
     token = get_token_from_firebase()
     if not token:
         print("No token found in Firebase!")
         return
         
+    # Quotes API সেটআপ করা হলো
+    fyers_api = fyersModel.FyersModel(client_id=CLIENT_ID, is_async=False, token=token, log_path="")
+    
     WS_TOKEN = f"{CLIENT_ID}:{token}"
     fyers_ws = data_ws.FyersDataSocket(
         access_token=WS_TOKEN, log_path="", litemode=True, write_to_file=False, reconnect=True,
@@ -63,7 +66,6 @@ def start_fyers_ws():
     )
     fyers_ws.connect()
 
-# সার্ভার চালু হওয়ার সাথে সাথে Fyers কানেক্ট হবে
 threading.Thread(target=start_fyers_ws, daemon=True).start()
 
 # ==========================================
@@ -80,9 +82,28 @@ def subscribe_symbols():
     data = request.json
     symbols = data.get('symbols', [])
     formatted_symbols = [format_fyers_symbol(s) for s in symbols if format_fyers_symbol(s)]
-    if formatted_symbols and fyers_ws:
-        fyers_ws.subscribe(data_type="SymbolUpdate", symbols=formatted_symbols)
+    
+    if formatted_symbols:
+        # ১. মার্কেট বন্ধ থাকলেও যেন দাম আসে, তার জন্য Quotes API থেকে দাম টেনে পাঠানো হচ্ছে
+        if fyers_api:
+            try:
+                quotes_data = {"symbols": ",".join(formatted_symbols)}
+                res = fyers_api.quotes(data=quotes_data)
+                if res and res.get('s') == 'ok':
+                    for item in res.get('d', []):
+                        symbol_name = item['n'].split(':')[1].split('-')[0]
+                        ltp = item['v']['lp']
+                        # সাথে সাথে ড্যাশবোর্ডে দাম পাঠিয়ে দেওয়া হচ্ছে
+                        socketio.emit('live_price', {'symbol': symbol_name, 'price': ltp})
+            except Exception as e:
+                print("Quotes API Error:", e)
+        
+        # ২. লাইভ মার্কেটের জন্য WebSocket-এ সাবস্ক্রাইব করা হচ্ছে
+        if fyers_ws:
+            fyers_ws.subscribe(data_type="SymbolUpdate", symbols=formatted_symbols)
+            
         return jsonify({'status': 'success'})
+        
     return jsonify({'status': 'error'})
 
 @app.route('/api/reload_token', methods=['GET'])
