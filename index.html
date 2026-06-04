@@ -198,24 +198,28 @@
 
                     <!-- KPI Row -->
                     <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                        <div class="glass-card kpi-card kpi-green p-5">
+                        <!-- Realized P&L -->
+                        <div class="glass-card kpi-card kpi-green p-5 flex flex-col justify-between">
                             <h3 class="text-[10px] text-slate-400 uppercase font-bold mb-1 tracking-widest">Realized P&L</h3>
                             <p id="netPnL" class="text-2xl font-black font-mono tracking-tight text-emerald-400">₹0.00</p>
                         </div>
-                        <div class="glass-card kpi-card kpi-blue p-5">
-                            <h3 class="text-[10px] text-slate-400 uppercase font-bold mb-1 tracking-widest">Win Rate</h3>
-                            <p id="winRateTxt" class="text-2xl font-black font-mono tracking-tight text-sky-400">0%</p>
-                        </div>
-                        <div class="glass-card kpi-card kpi-purple p-5">
+                        <!-- Capital Deployed -->
+                        <div class="glass-card kpi-card kpi-purple p-5 flex flex-col justify-between">
                             <h3 class="text-[10px] text-slate-400 uppercase font-bold mb-1 tracking-widest">Capital Deployed</h3>
                             <p id="totalInvested" class="text-2xl font-black font-mono tracking-tight text-purple-400">₹0.00</p>
                         </div>
-                        <div class="glass-card kpi-card kpi-gray p-5">
-                            <h3 class="text-[10px] text-slate-400 uppercase font-bold mb-1 tracking-widest">Unrealized P&L</h3>
-                            <p id="unrealizedPnL" class="text-2xl font-black font-mono tracking-tight text-slate-300">₹0.00</p>
+                        <!-- New: Combined Overall & Current Session P&L (Takes 2 Columns) -->
+                        <div class="glass-card kpi-card kpi-blue p-5 col-span-2 flex justify-between items-center border border-sky-500/20 bg-sky-900/10 shadow-[0_0_15px_rgba(14,165,233,0.1)]">
+                            <div>
+                                <h3 class="text-[10px] text-slate-400 uppercase font-bold mb-1.5 tracking-widest">Overall Unrealized</h3>
+                                <p id="unrealizedPnL" class="text-3xl font-black font-mono tracking-tight text-slate-300">₹0.00</p>
+                            </div>
+                            <div class="text-right border-l border-slate-700/50 pl-5">
+                                <h3 class="text-[10px] text-sky-400 uppercase font-bold mb-1.5 tracking-widest">Current Session</h3>
+                                <p id="dayPnL" class="text-2xl font-black font-mono tracking-tight text-sky-400">₹0.00</p>
+                            </div>
                         </div>
                     </div>
-
                     <!-- Dynamic Multi-Chart Grid (Valvo Style) -->
                     <div id="multiChartContainer" class="grid grid-cols-1 md:grid-cols-2 gap-6"></div>
 
@@ -471,14 +475,21 @@
 
         // ================= RENDER UI (KPIs & Closed Ledger) =================
         function renderUI() {
-            let totalRealizedPnL = 0, totalWins = 0, closedCount = 0, totalInvestedAmt = 0, totalUnrealizedPnL = 0;
+            let totalRealizedPnL = 0, totalWins = 0, closedCount = 0, totalInvestedAmt = 0;
+            // নতুন ভেরিয়েবল: Day P&L এর টোটাল রাখার জন্য
+            let totalUnrealizedPnL = 0, totalDayPnL = 0; 
+            
             const closedBody = document.getElementById('closedTradeBody'); closedBody.innerHTML = '';
             
             trades.forEach(t => {
                 if (t.status === 'OPEN') {
                     totalInvestedAmt += t.qty * t.entry;
                     const liveCMP = t.liveCMP || t.entry;
+                    const prevClose = t.prevClose || t.entry; // Day P&L এর জন্য
+                    
+                    // Overall এবং Current Session এর হিসাব
                     totalUnrealizedPnL += t.type === 'LONG' ? (liveCMP - t.entry) * t.qty : (t.entry - liveCMP) * t.qty;
+                    totalDayPnL += t.type === 'LONG' ? (liveCMP - prevClose) * t.qty : (prevClose - liveCMP) * t.qty;
                 } else {
                     totalRealizedPnL += t.pnl; closedCount++; if (t.pnl > 0) totalWins++;
                     const pnlColor = t.pnl >= 0 ? 'text-emerald-400' : 'text-rose-400';
@@ -493,12 +504,24 @@
                 }
             });
 
+            // 1. Realized P&L
             document.getElementById('netPnL').innerText = (totalRealizedPnL >= 0 ? '+' : '') + '₹' + totalRealizedPnL.toLocaleString('en-IN', { maximumFractionDigits: 2 });
             document.getElementById('netPnL').className = `text-2xl font-black font-mono tracking-tight ${totalRealizedPnL >= 0 ? 'text-emerald-400' : 'text-rose-400'}`;
-            document.getElementById('winRateTxt').innerText = closedCount > 0 ? ((totalWins / closedCount) * 100).toFixed(1) + '%' : '0%';
+            
+            // 2. Capital Deployed
             document.getElementById('totalInvested').innerText = '₹' + totalInvestedAmt.toLocaleString('en-IN', { maximumFractionDigits: 2 });
+            
+            // 3. Overall P&L Update
             document.getElementById('unrealizedPnL').innerText = (totalUnrealizedPnL >= 0 ? '+' : '') + '₹' + totalUnrealizedPnL.toLocaleString('en-IN', { maximumFractionDigits: 2 });
-            document.getElementById('unrealizedPnL').className = `text-2xl font-black font-mono tracking-tight ${totalUnrealizedPnL >= 0 ? 'text-emerald-400' : 'text-rose-400'}`;
+            document.getElementById('unrealizedPnL').className = `text-3xl font-black font-mono tracking-tight ${totalUnrealizedPnL >= 0 ? 'text-emerald-400' : 'text-rose-400'}`;
+            
+            // 4. Current Session (Day P&L) Update
+            const dayElem = document.getElementById('dayPnL');
+            if (dayElem) {
+                dayElem.innerText = (totalDayPnL >= 0 ? '+' : '') + '₹' + totalDayPnL.toLocaleString('en-IN', { maximumFractionDigits: 2 });
+                // কালার লজিক (সবুজ বা লাল)
+                dayElem.className = `text-2xl font-black font-mono tracking-tight ${totalDayPnL >= 0 ? 'text-emerald-400' : 'text-rose-400'}`;
+            }
             
             // Render the main Grid View
             renderMultiCharts();
