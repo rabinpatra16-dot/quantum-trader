@@ -1,17 +1,16 @@
-import eventlet
-eventlet.monkey_patch() # এই লাইনটি সার্ভার ক্র্যাশ হওয়া বন্ধ করবে
-
 from flask import Flask, jsonify, request
 from flask_cors import CORS
 from flask_socketio import SocketIO
 from fyers_apiv3 import fyersModel
 from fyers_apiv3.FyersWebsocket import data_ws
+import threading
 import firebase_admin
 from firebase_admin import credentials, db
 
 app = Flask(__name__)
 CORS(app)
-socketio = SocketIO(app, cors_allowed_origins="*", async_mode='eventlet')
+# এখানে eventlet-এর বদলে threading ব্যবহার করা হয়েছে
+socketio = SocketIO(app, cors_allowed_origins="*", async_mode='threading')
 
 CLIENT_ID = "A735DXMG83-100"
 
@@ -64,8 +63,8 @@ def start_fyers_ws():
     )
     fyers_ws.connect()
 
-# Threading-এর বদলে SocketIO-এর নিজস্ব টাস্ক রানার ব্যবহার করা হলো
-socketio.start_background_task(start_fyers_ws)
+# সার্ভার চালু হওয়ার সাথে সাথে Fyers কানেক্ট হবে
+threading.Thread(target=start_fyers_ws, daemon=True).start()
 
 # ==========================================
 # ROUTES
@@ -91,7 +90,7 @@ def reload_token():
     global fyers_ws
     if fyers_ws:
         fyers_ws.close()
-    socketio.start_background_task(start_fyers_ws)
+    threading.Thread(target=start_fyers_ws, daemon=True).start()
     return jsonify({'status': 'success', 'message': 'WebSocket Restarted!'})
 
 if __name__ == '__main__':
