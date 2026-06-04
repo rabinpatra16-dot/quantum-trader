@@ -1,9 +1,11 @@
+import eventlet
+eventlet.monkey_patch() # এই লাইনটি সার্ভার ক্র্যাশ হওয়া বন্ধ করবে
+
 from flask import Flask, jsonify, request
 from flask_cors import CORS
 from flask_socketio import SocketIO
 from fyers_apiv3 import fyersModel
 from fyers_apiv3.FyersWebsocket import data_ws
-import threading
 import firebase_admin
 from firebase_admin import credentials, db
 
@@ -18,7 +20,6 @@ CLIENT_ID = "A735DXMG83-100"
 # ==========================================
 try:
     if not firebase_admin._apps:
-        # ডাউনলোড করা JSON ফাইলটি দিয়ে ফায়ারবেস কানেক্ট করা হচ্ছে
         cred = credentials.Certificate("firebase_key.json")
         firebase_admin.initialize_app(cred, {
             'databaseURL': 'https://quantum-tracker-6fe30-default-rtdb.firebaseio.com/'
@@ -51,7 +52,7 @@ def onopen(): print("Connected to Fyers WebSocket")
 
 def start_fyers_ws():
     global fyers_ws
-    token = get_token_from_firebase() # ফায়ারবেস থেকে টোকেন নিচ্ছে
+    token = get_token_from_firebase()
     if not token:
         print("No token found in Firebase!")
         return
@@ -63,8 +64,8 @@ def start_fyers_ws():
     )
     fyers_ws.connect()
 
-# সার্ভার চালু হওয়ার সাথে সাথে WebSocket কানেক্ট হবে
-threading.Thread(target=start_fyers_ws, daemon=True).start()
+# Threading-এর বদলে SocketIO-এর নিজস্ব টাস্ক রানার ব্যবহার করা হলো
+socketio.start_background_task(start_fyers_ws)
 
 # ==========================================
 # ROUTES
@@ -85,14 +86,13 @@ def subscribe_symbols():
         return jsonify({'status': 'success'})
     return jsonify({'status': 'error'})
 
-# নতুন টোকেন আসলে সার্ভারকে রিস্টার্ট করার রুট
 @app.route('/api/reload_token', methods=['GET'])
 def reload_token():
     global fyers_ws
     if fyers_ws:
-        fyers_ws.close() # পুরানো কানেকশন বন্ধ
-    threading.Thread(target=start_fyers_ws, daemon=True).start() # নতুন টোকেন দিয়ে চালু
-    return jsonify({'status': 'success', 'message': 'WebSocket Restarted with New Token!'})
+        fyers_ws.close()
+    socketio.start_background_task(start_fyers_ws)
+    return jsonify({'status': 'success', 'message': 'WebSocket Restarted!'})
 
 if __name__ == '__main__':
     socketio.run(app, host='0.0.0.0', port=5000)
