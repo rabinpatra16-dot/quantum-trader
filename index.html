@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>QuantumTrader | PRO Grid Dashboard</title>
+    <title>DreamTrader | PRO Grid Dashboard</title>
     
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#060b19">
@@ -114,7 +114,7 @@
         body.light-theme .text-slate-500,
         body.light-theme .text-slate-600 { 
             color: #000000 !important; 
-            font-weight: 700 !important; /* Make it bolder to pop out */
+            font-weight: 700 !important;
         }
         
         body.light-theme .border-slate-800,
@@ -132,8 +132,8 @@
         body.light-theme .bg-sky-900\/10 { background: #eff6ff !important; border-color: #bfdbfe !important; }
         
         /* Retain bright colors for P&L */
-        body.light-theme .text-emerald-400 { color: #16a34a !important; font-weight: 900 !important; }
-        body.light-theme .text-rose-400 { color: #e11d48 !important; font-weight: 900 !important; }
+        body.light-theme .text-emerald-400, body.light-theme .text-emerald-500 { color: #16a34a !important; font-weight: 900 !important; }
+        body.light-theme .text-rose-400, body.light-theme .text-rose-500 { color: #e11d48 !important; font-weight: 900 !important; }
         body.light-theme .text-sky-400, body.light-theme .text-sky-500 { color: #2563eb !important; font-weight: 900 !important; }
         body.light-theme .text-purple-400 { color: #7e22ce !important; }
     </style>
@@ -143,7 +143,7 @@
     <!-- Auth Screen -->
     <div id="authScreen" class="fixed inset-0 bg-[#060b19] z-[100] flex items-center justify-center p-4">
         <div class="glass-card p-8 w-full max-w-md border-sky-500/30">
-            <h1 class="text-3xl font-black tracking-tighter mb-2 text-center">QUANTUM<span class="text-sky-400">TRADER</span></h1>
+            <h1 class="text-3xl font-black tracking-tighter mb-2 text-center">DREAM<span class="text-sky-400">TRADER</span></h1>
             <p class="text-xs text-slate-400 mb-8 text-center uppercase tracking-widest">Login to your workspace</p>
             <input type="email" id="authEmail" placeholder="Email address" class="input-ultra font-mono text-sm mb-4">
             <input type="password" id="authPassword" placeholder="Password" class="input-ultra font-mono text-sm mb-6">
@@ -170,7 +170,7 @@
             <!-- Header -->
             <header class="flex justify-between items-center mb-8 bg-slate-900/40 p-5 rounded-2xl border border-slate-800/50 backdrop-blur-md">
                 <div>
-                    <h1 class="text-2xl font-black tracking-tighter">QUANTUM<span class="text-sky-400">TRADER</span> <span class="text-[10px] text-sky-400 border border-sky-500/30 bg-sky-500/10 px-2 py-0.5 rounded ml-2 align-middle font-mono">GRID PRO</span></h1>
+                    <h1 class="text-2xl font-black tracking-tighter">DREAM<span class="text-sky-400">TRADER</span> <span class="text-[10px] text-sky-400 border border-sky-500/30 bg-sky-500/10 px-2 py-0.5 rounded ml-2 align-middle font-mono">GRID PRO</span></h1>
                     <p class="text-[10px] text-slate-400 mt-1 uppercase font-mono tracking-widest flex items-center gap-2">
                         <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 live-glow"></span> 
                         <span id="userEmailDisplay" class="text-sky-400"></span>
@@ -208,28 +208,33 @@
                                     <input type="number" id="qty" placeholder="0" required step="any" min="0.001" class="input-ultra font-mono text-sm h-[42px]">
                                 </div>
                             </div>
-                            <div class="p-4 bg-slate-900/60 rounded-xl border border-slate-700/50 shadow-inner">
-                                <label class="block text-[10px] font-bold text-sky-400 mb-1.5 uppercase tracking-wider">Entry Price</label>
-                                <input type="number" id="entry" placeholder="0.00" required step="any" class="input-ultra font-mono text-lg text-sky-400 font-bold bg-slate-950/50 border-sky-500/20 mb-3">
+                            
+                            <!-- Removed the dark background box here -->
+                            <div class="pt-2">
+                                <label class="block text-[10px] font-bold text-slate-400 mb-1.5 uppercase tracking-wider">Entry Price</label>
+                                <input type="number" id="entry" placeholder="0.00" required step="any" class="input-ultra font-mono text-lg font-bold mb-4 text-sky-500">
                                 <div class="grid grid-cols-2 gap-3">
                                     <div>
-                                        <label class="block text-[10px] font-bold text-rose-400 mb-1.5 uppercase tracking-wider">SL (%)</label>
-                                        <input type="number" id="sl_pct" placeholder="e.g. 1.5" step="any" class="input-ultra font-mono text-xs border-rose-900/30 bg-rose-950/20 text-rose-300">
+                                        <label class="block text-[10px] font-bold text-slate-400 mb-1.5 uppercase tracking-wider">SL (%)</label>
+                                        <input type="number" id="sl_pct" placeholder="e.g. 1.5" step="any" class="input-ultra font-mono text-sm text-rose-500 font-bold">
                                     </div>
                                     <div>
-                                        <label class="block text-[10px] font-bold text-emerald-400 mb-1.5 uppercase tracking-wider">Target</label>
-                                        <input type="number" id="exit" placeholder="0.00" step="any" class="input-ultra font-mono text-xs border-emerald-900/30 bg-emerald-950/20 text-emerald-300">
+                                        <label class="block text-[10px] font-bold text-slate-400 mb-1.5 uppercase tracking-wider">Target</label>
+                                        <input type="number" id="exit" placeholder="0.00" step="any" class="input-ultra font-mono text-sm text-emerald-500 font-bold">
                                     </div>
                                 </div>
                             </div>
-                            <button type="submit" class="w-full btn-ultra text-xs uppercase tracking-widest mt-2">Deploy Trade</button>
+                            
+                            <button type="submit" class="w-full btn-ultra text-xs uppercase tracking-widest mt-4">Deploy Trade</button>
                         </form>
                     </div>
                 </div>
 
                 <!-- Right Area -->
                 <div class="xl:col-span-9 space-y-6">
-                    <div class="flex justify-between items-center bg-slate-900/30 p-4 rounded-xl border border-slate-800">
+                    
+                    <!-- Removed the background box from LIVE PORTFOLIO GRID header -->
+                    <div class="flex justify-between items-center mb-2 px-1">
                         <h2 class="text-sm font-black text-white flex items-center gap-3 tracking-wide">
                             <span class="w-3 h-3 rounded-full bg-sky-500 live-glow"></span> LIVE PORTFOLIO GRID
                         </h2>
@@ -637,7 +642,7 @@
                         <!-- TRADING VIEW CHART -->
                         <div id="${chartId}" class="w-full flex-1 bg-[#0f172a] border-y border-slate-800/50 min-h-[180px]"></div>
                         
-                        <!-- BOTTOM CONTROL BAR (Removed Box for CMP/LTP) -->
+                        <!-- BOTTOM CONTROL BAR -->
                         <div class="px-4 py-3 bg-slate-950/80 flex justify-between items-center font-mono">
                             <div class="flex flex-col text-sm text-slate-400 gap-1.5">
                                 <div>Entry: <span class="font-bold ml-1 text-base">₹${t.entry.toFixed(2)}</span></div>
