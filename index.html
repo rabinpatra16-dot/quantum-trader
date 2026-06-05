@@ -12,8 +12,7 @@
     
     <!-- Colorful Rupee Favicon -->
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><defs><linearGradient id='g' x1='0%' y1='0%' x2='100%' y2='100%'><stop offset='0%' stop-color='%2338bdf8' /><stop offset='100%' stop-color='%23a855f7' /></linearGradient></defs><rect width='100' height='100' rx='25' fill='url(%23g)'/><text x='50%' y='55%' font-family='sans-serif' font-weight='900' font-size='70' fill='white' dominant-baseline='middle' text-anchor='middle'>₹</text></svg>">
-    <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><defs><linearGradient id='g' x1='0%' y1='0%' x2='100%' y2='100%'><stop offset='0%' stop-color='%2338bdf8' /><stop offset='100%' stop-color='%23a855f7' /></linearGradient></defs><rect width='100' height='100' rx='25' fill='url(%23g)'/><text x='50%' y='55%' font-family='sans-serif' font-weight='900' font-size='70' fill='white' dominant-baseline='middle' text-anchor='middle'>₹</text></svg>">
-
+    
     <!-- Firebase -->
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
@@ -462,7 +461,8 @@
             let pnl = isClosed ? (type === 'LONG' ? (exit - entry) * qty : (entry - exit) * qty) : 0;
             const dateStr = new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
             
-            trades.unshift({ id: Date.now(), date: dateStr, symbol, type, qty, entry, sl: sl, exit, pnl, status: isClosed ? 'CLOSED' : 'OPEN', liveCMP: entry, slHit: false });
+            // Added default prevClose as entry price so day P&L won't break initially
+            trades.unshift({ id: Date.now(), date: dateStr, symbol, type, qty, entry, sl: sl, exit, pnl, status: isClosed ? 'CLOSED' : 'OPEN', liveCMP: entry, slHit: false, prevClose: entry });
             saveData(); this.reset(); document.getElementById('symbol').focus();
             subscribeOpenTrades();
         });
@@ -517,6 +517,7 @@
                     const liveCMP = t.liveCMP || t.entry;
                     const prevClose = t.prevClose || t.entry; 
                     
+                    // UPDATED: Strict logic for Dashboard KPIs
                     totalUnrealizedPnL += t.type === 'LONG' ? (liveCMP - t.entry) * t.qty : (t.entry - liveCMP) * t.qty;
                     totalDayPnL += t.type === 'LONG' ? (liveCMP - prevClose) * t.qty : (prevClose - liveCMP) * t.qty;
                 } else {
@@ -600,17 +601,20 @@
             openTrades.forEach(t => {
                 const cardId = 'grid_card_' + t.id;
                 const chartId = 'tv_mini_' + t.id;
+                
                 const liveCMP = t.liveCMP || t.entry;
                 const invested = t.qty * t.entry;
                 
-                const unrealized = t.type === 'LONG' ? (liveCMP - t.entry) * t.qty : (t.entry - liveCMP) * t.qty;
-                const profitPct = ((liveCMP - t.entry) / t.entry) * 100;
-                const finalPct = t.type === 'LONG' ? profitPct : -profitPct;
-                const pnlColor = unrealized >= 0 ? 'text-emerald-400' : 'text-rose-400';
+                // UPDATED: Strict logic for Individual Grid Cards
+                // 1. Total P&L
+                const totalPnL = t.type === 'LONG' ? (liveCMP - t.entry) * t.qty : (t.entry - liveCMP) * t.qty;
+                const totalPct = t.type === 'LONG' ? ((liveCMP - t.entry) / t.entry) * 100 : ((t.entry - liveCMP) / t.entry) * 100;
+                const pnlColor = totalPnL >= 0 ? 'text-emerald-400' : 'text-rose-400';
                 
+                // 2. Day P&L
                 const prevClose = t.prevClose || t.entry; 
-                const dayChangeVal = t.type === 'LONG' ? (liveCMP - prevClose) * t.qty : (prevClose - liveCMP) * t.qty;
-                const dayColor = dayChangeVal >= 0 ? 'text-emerald-400' : 'text-rose-400';
+                const dayPnL = t.type === 'LONG' ? (liveCMP - prevClose) * t.qty : (prevClose - liveCMP) * t.qty;
+                const dayColor = dayPnL >= 0 ? 'text-emerald-400' : 'text-rose-400';
 
                 const priceLabel = marketLive ? "CMP" : "LTP";
                 const slBadge = t.slHit ? `<span class="text-[10px] bg-rose-600 text-white px-2 py-0.5 rounded uppercase ml-2 animate-pulse font-bold">SL HIT</span>` : '';
@@ -633,10 +637,10 @@
                                 <span class="text-xs text-slate-400 font-mono mt-1.5">Invested: ₹${invested.toLocaleString('en-IN', {maximumFractionDigits:0})}</span>
                             </div>
                             <div class="text-right flex flex-col items-end">
-                                <span id="pct_${t.id}" class="font-black ${pnlColor} text-2xl tracking-tight">${finalPct >= 0 ? '+' : ''}${finalPct.toFixed(2)}%</span>
+                                <span id="pct_${t.id}" class="font-black ${pnlColor} text-2xl tracking-tight">${totalPct >= 0 ? '+' : ''}${totalPct.toFixed(2)}%</span>
                                 <div class="flex flex-col text-xs font-mono font-bold mt-1.5 gap-1">
-                                    <span id="tot_${t.id}" class="${pnlColor}">Total: ${unrealized >= 0 ? '+' : ''}₹${unrealized.toFixed(2)}</span>
-                                    <span id="day_${t.id}" class="${dayColor}">Day: ${dayChangeVal >= 0 ? '+' : ''}₹${dayChangeVal.toFixed(2)}</span>
+                                    <span id="tot_${t.id}" class="${pnlColor}">Total: ${totalPnL >= 0 ? '+' : ''}₹${totalPnL.toFixed(2)}</span>
+                                    <span id="day_${t.id}" class="${dayColor}">Day: ${dayPnL >= 0 ? '+' : ''}₹${dayPnL.toFixed(2)}</span>
                                 </div>
                             </div>
                         </div>
@@ -669,11 +673,11 @@
                 } else {
                     document.getElementById(`label_${t.id}`).innerText = priceLabel;
                     document.getElementById(`pct_${t.id}`).className = `font-black ${pnlColor} text-2xl tracking-tight`;
-                    document.getElementById(`pct_${t.id}`).innerText = `${finalPct >= 0 ? '+' : ''}${finalPct.toFixed(2)}%`;
+                    document.getElementById(`pct_${t.id}`).innerText = `${totalPct >= 0 ? '+' : ''}${totalPct.toFixed(2)}%`;
                     document.getElementById(`tot_${t.id}`).className = pnlColor;
-                    document.getElementById(`tot_${t.id}`).innerText = `Total: ${unrealized >= 0 ? '+' : ''}₹${unrealized.toFixed(2)}`;
+                    document.getElementById(`tot_${t.id}`).innerText = `Total: ${totalPnL >= 0 ? '+' : ''}₹${totalPnL.toFixed(2)}`;
                     document.getElementById(`day_${t.id}`).className = dayColor;
-                    document.getElementById(`day_${t.id}`).innerText = `Day: ${dayChangeVal >= 0 ? '+' : ''}₹${dayChangeVal.toFixed(2)}`;
+                    document.getElementById(`day_${t.id}`).innerText = `Day: ${dayPnL >= 0 ? '+' : ''}₹${dayPnL.toFixed(2)}`;
                     
                     const cmpDisplay = document.getElementById(`cmp_${t.id}`);
                     if(cmpDisplay) cmpDisplay.innerText = `₹${liveCMP.toFixed(2)}`;
