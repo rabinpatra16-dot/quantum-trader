@@ -1,7 +1,7 @@
 {
   "name": "QuantumTrader Pro",
   "short_name": "QuantumTrader",
-  "start_url": "./index.html",
+  "start_url": "./trade.html",
   "display": "standalone",
   "background_color": "#020617",
   "theme_color": "#020617",
