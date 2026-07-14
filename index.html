@@ -172,7 +172,7 @@
         
         <div class="max-w-[1800px] mx-auto">
             <!-- Header -->
-            <header class="flex justify-between items-center mb-8 bg-slate-900/40 p-5 rounded-2xl border border-slate-800/50 backdrop-blur-md">
+            <header class="flex flex-wrap justify-between items-center mb-8 bg-slate-900/40 p-5 rounded-2xl border border-slate-800/50 backdrop-blur-md gap-4">
                 <div>
                     <h1 class="text-2xl font-black tracking-tighter">DREAM<span class="text-sky-400">TRADER</span> <span class="text-[10px] text-sky-400 border border-sky-500/30 bg-sky-500/10 px-2 py-0.5 rounded ml-2 align-middle font-mono">GRID PRO</span></h1>
                     <p class="text-[10px] text-slate-400 mt-1 uppercase font-mono tracking-widest flex items-center gap-2">
@@ -180,7 +180,8 @@
                         <span id="userEmailDisplay" class="text-sky-400"></span>
                     </p>
                 </div>
-                <div class="flex gap-2">
+                <div class="flex flex-wrap gap-2">
+                    <button onclick="openTradeModal()" class="text-[10px] font-bold text-indigo-400 bg-indigo-500/10 hover:bg-indigo-500/20 border border-indigo-500/30 px-4 py-2 rounded-lg transition uppercase tracking-wider shadow-sm">➕ New Trade</button>
                     <button id="themeToggleBtn" onclick="toggleTheme()" class="text-[10px] font-bold text-amber-500 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 px-4 py-2 rounded-lg transition uppercase tracking-wider shadow-sm">☀️ Light</button>
                     <button onclick="triggerImport()" class="text-[10px] font-bold text-emerald-400 bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/20 px-4 py-2 rounded-lg transition uppercase tracking-wider">⬆️ Import</button>
                     <button onclick="exportData()" class="text-[10px] font-bold text-blue-400 bg-blue-500/10 hover:bg-blue-500/20 border border-blue-500/20 px-4 py-2 rounded-lg transition uppercase tracking-wider">⬇️ Export</button>
@@ -188,116 +189,118 @@
                 </div>
             </header>
 
-            <div class="grid grid-cols-1 xl:grid-cols-12 gap-6">
-                <!-- Left Sidebar -->
-                <div class="xl:col-span-3 space-y-6 h-fit sticky top-6">
-                    <div class="glass-card p-6 border-t-4 border-t-indigo-500">
-                        <h2 class="text-xs font-bold text-white uppercase tracking-widest flex items-center gap-2 mb-6">🚀 Execute Order</h2>
-                        <form id="tradeForm" class="space-y-4">
-                            <div>
-                                <label class="block text-[10px] font-bold text-slate-400 mb-1.5 uppercase tracking-wider">Symbol</label>
-                                <input type="text" id="symbol" list="tickers" placeholder="e.g. RELIANCE" required autocomplete="off" class="input-ultra font-mono text-sm uppercase">
-                                <datalist id="tickers"></datalist>
-                            </div>
-                            <div class="grid grid-cols-2 gap-3">
-                                <div>
-                                    <label class="block text-[10px] font-bold text-slate-400 mb-1.5 uppercase tracking-wider">Direction</label>
-                                    <select id="type" class="input-ultra text-xs font-bold p-2 h-[42px] cursor-pointer">
-                                        <option value="LONG">LONG (Buy)</option>
-                                        <option value="SHORT">SHORT (Sell)</option>
-                                    </select>
-                                </div>
-                                <div>
-                                    <label class="block text-[10px] font-bold text-slate-400 mb-1.5 uppercase tracking-wider">Quantity</label>
-                                    <input type="number" id="qty" placeholder="0" required step="any" min="0.001" class="input-ultra font-mono text-sm h-[42px]">
-                                </div>
-                            </div>
-                            
-                            <div class="pt-2">
-                                <label class="block text-[10px] font-bold text-slate-400 mb-1.5 uppercase tracking-wider">Entry Price</label>
-                                <input type="number" id="entry" placeholder="0.00" required step="any" class="input-ultra font-mono text-lg font-bold mb-4 text-sky-500">
-                                <div class="grid grid-cols-2 gap-3">
-                                    <div>
-                                        <label class="block text-[10px] font-bold text-slate-400 mb-1.5 uppercase tracking-wider">SL (%)</label>
-                                        <input type="number" id="sl_pct" placeholder="e.g. 1.5" step="any" class="input-ultra font-mono text-sm text-rose-500 font-bold">
-                                    </div>
-                                    <div>
-                                        <label class="block text-[10px] font-bold text-slate-400 mb-1.5 uppercase tracking-wider">Target</label>
-                                        <input type="number" id="exit" placeholder="0.00" step="any" class="input-ultra font-mono text-sm text-emerald-500 font-bold">
-                                    </div>
-                                </div>
-                            </div>
-                            
-                            <button type="submit" class="w-full btn-ultra text-xs uppercase tracking-widest mt-4">Deploy Trade</button>
-                        </form>
+            <!-- Dashboard Content (Now Full Width) -->
+            <div class="space-y-6">
+                
+                <div class="flex justify-between items-center mb-2 px-1">
+                    <h2 class="text-sm font-black text-white flex items-center gap-3 tracking-wide">
+                        <span class="w-3 h-3 rounded-full bg-sky-500 live-glow"></span> LIVE PORTFOLIO GRID
+                    </h2>
+                    <div class="flex gap-2">
+                        <button id="autoSyncBtn" class="text-[10px] bg-slate-800/80 text-slate-300 px-4 py-2 rounded-lg uppercase font-bold border border-slate-600 transition">Syncing... ⌛</button>
                     </div>
                 </div>
 
-                <!-- Right Area -->
-                <div class="xl:col-span-9 space-y-6">
-                    
-                    <div class="flex justify-between items-center mb-2 px-1">
-                        <h2 class="text-sm font-black text-white flex items-center gap-3 tracking-wide">
-                            <span class="w-3 h-3 rounded-full bg-sky-500 live-glow"></span> LIVE PORTFOLIO GRID
-                        </h2>
-                        <div class="flex gap-2">
-                            <button id="autoSyncBtn" class="text-[10px] bg-slate-800/80 text-slate-300 px-4 py-2 rounded-lg uppercase font-bold border border-slate-600 transition">Syncing... ⌛</button>
-                        </div>
+                <!-- KPI Row -->
+                <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                    <div class="glass-card kpi-card kpi-green p-5 flex flex-col justify-between">
+                        <h3 class="text-[10px] text-slate-400 uppercase font-bold mb-1 tracking-widest">Realized P&L</h3>
+                        <p id="netPnL" class="text-2xl font-black font-mono tracking-tight text-emerald-400">₹0.00</p>
                     </div>
-
-                    <!-- KPI Row -->
-                    <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                        <div class="glass-card kpi-card kpi-green p-5 flex flex-col justify-between">
-                            <h3 class="text-[10px] text-slate-400 uppercase font-bold mb-1 tracking-widest">Realized P&L</h3>
-                            <p id="netPnL" class="text-2xl font-black font-mono tracking-tight text-emerald-400">₹0.00</p>
-                        </div>
-                        <div class="glass-card kpi-card kpi-purple p-5 flex flex-col justify-between">
-                            <h3 class="text-[10px] text-slate-400 uppercase font-bold mb-1 tracking-widest">Capital Deployed</h3>
-                            <p id="totalInvested" class="text-2xl font-black font-mono tracking-tight text-purple-400">₹0.00</p>
-                        </div>
-                        <div class="glass-card kpi-card kpi-blue p-5 col-span-2 flex justify-between items-center border border-sky-500/20 bg-sky-900/10 shadow-[0_0_15px_rgba(14,165,233,0.1)]">
-                            <div>
-                                <h3 class="text-[10px] text-slate-400 uppercase font-bold mb-1.5 tracking-widest">Overall Unrealized</h3>
-                                <div class="flex items-baseline gap-2">
-                                    <p id="unrealizedPnL" class="text-3xl font-black font-mono tracking-tight text-slate-300">₹0.00</p>
-                                    <span id="unrealizedPct" class="text-sm font-bold font-mono text-slate-500">(0.00%)</span>
-                                </div>
+                    <div class="glass-card kpi-card kpi-purple p-5 flex flex-col justify-between">
+                        <h3 class="text-[10px] text-slate-400 uppercase font-bold mb-1 tracking-widest">Capital Deployed</h3>
+                        <p id="totalInvested" class="text-2xl font-black font-mono tracking-tight text-purple-400">₹0.00</p>
+                    </div>
+                    <div class="glass-card kpi-card kpi-blue p-5 col-span-2 flex justify-between items-center border border-sky-500/20 bg-sky-900/10 shadow-[0_0_15px_rgba(14,165,233,0.1)]">
+                        <div>
+                            <h3 class="text-[10px] text-slate-400 uppercase font-bold mb-1.5 tracking-widest">Overall Unrealized</h3>
+                            <div class="flex items-baseline gap-2">
+                                <p id="unrealizedPnL" class="text-3xl font-black font-mono tracking-tight text-slate-300">₹0.00</p>
+                                <span id="unrealizedPct" class="text-sm font-bold font-mono text-slate-500">(0.00%)</span>
                             </div>
-                            <div class="text-right border-l border-slate-700/50 pl-5">
-                                <h3 class="text-[10px] text-sky-400 uppercase font-bold mb-1.5 tracking-widest">Current Session</h3>
-                                <div class="flex items-baseline gap-2 justify-end">
-                                    <p id="dayPnL" class="text-2xl font-black font-mono tracking-tight text-sky-400">₹0.00</p>
-                                    <span id="dayPct" class="text-xs font-bold font-mono text-slate-500">(0.00%)</span>
-                                </div>
+                        </div>
+                        <div class="text-right border-l border-slate-700/50 pl-5">
+                            <h3 class="text-[10px] text-sky-400 uppercase font-bold mb-1.5 tracking-widest">Current Session</h3>
+                            <div class="flex items-baseline gap-2 justify-end">
+                                <p id="dayPnL" class="text-2xl font-black font-mono tracking-tight text-sky-400">₹0.00</p>
+                                <span id="dayPct" class="text-xs font-bold font-mono text-slate-500">(0.00%)</span>
                             </div>
                         </div>
                     </div>
+                </div>
 
-                    <!-- Dynamic Multi-Chart Grid -->
-                    <div id="multiChartContainer" class="grid grid-cols-1 md:grid-cols-2 gap-6"></div>
+                <!-- Dynamic Multi-Chart Grid -->
+                <div id="multiChartContainer" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6"></div>
 
-                    <!-- Closed Trades Ledger -->
-                    <div class="glass-card overflow-hidden mt-8 opacity-90 border-t-2 border-slate-700">
-                        <div class="p-4 border-b border-slate-800/50 bg-slate-900/40">
-                            <h3 class="text-xs text-slate-400 font-bold uppercase tracking-widest">Closed Trade Ledger</h3>
-                        </div>
-                        <div class="overflow-x-auto max-h-[350px]">
-                            <table class="w-full text-left text-sm whitespace-nowrap">
-                                <thead>
-                                    <tr class="bg-slate-900/80 text-[10px] text-slate-500 uppercase tracking-widest border-b border-slate-800/50 sticky top-0 backdrop-blur-md z-10">
-                                        <th class="py-3 px-6">Asset & Date</th>
-                                        <th class="py-3 px-6 text-center">Qty / Type</th>
-                                        <th class="py-3 px-6">Entry → Exit</th>
-                                        <th class="py-3 px-6 text-right">Realized P&amp;L</th>
-                                        <th class="py-3 px-6 text-center">Action</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="closedTradeBody" class="divide-y divide-slate-800/40"></tbody>
-                            </table>
-                        </div>
+                <!-- Closed Trades Ledger -->
+                <div class="glass-card overflow-hidden mt-8 opacity-90 border-t-2 border-slate-700">
+                    <div class="p-4 border-b border-slate-800/50 bg-slate-900/40">
+                        <h3 class="text-xs text-slate-400 font-bold uppercase tracking-widest">Closed Trade Ledger</h3>
+                    </div>
+                    <div class="overflow-x-auto max-h-[350px]">
+                        <table class="w-full text-left text-sm whitespace-nowrap">
+                            <thead>
+                                <tr class="bg-slate-900/80 text-[10px] text-slate-500 uppercase tracking-widest border-b border-slate-800/50 sticky top-0 backdrop-blur-md z-10">
+                                    <th class="py-3 px-6">Asset & Date</th>
+                                    <th class="py-3 px-6 text-center">Qty / Type</th>
+                                    <th class="py-3 px-6">Entry → Exit</th>
+                                    <th class="py-3 px-6 text-right">Realized P&amp;L</th>
+                                    <th class="py-3 px-6 text-center">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody id="closedTradeBody" class="divide-y divide-slate-800/40"></tbody>
+                        </table>
                     </div>
                 </div>
             </div>
+        </div>
+    </div>
+
+    <!-- New Trade Modal -->
+    <div id="newTradeModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm hidden items-center justify-center z-50 p-4">
+        <div class="glass-card p-6 w-full max-w-md border-indigo-500/30">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-xs font-bold text-white uppercase tracking-widest flex items-center gap-2">🚀 Execute Order</h2>
+                <button onclick="closeTradeModal()" class="text-slate-400 hover:text-white text-lg">✕</button>
+            </div>
+            
+            <form id="tradeForm" class="space-y-4">
+                <div>
+                    <label class="block text-[10px] font-bold text-slate-400 mb-1.5 uppercase tracking-wider">Symbol</label>
+                    <input type="text" id="symbol" list="tickers" placeholder="e.g. RELIANCE" required autocomplete="off" class="input-ultra font-mono text-sm uppercase">
+                    <datalist id="tickers"></datalist>
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-[10px] font-bold text-slate-400 mb-1.5 uppercase tracking-wider">Direction</label>
+                        <select id="type" class="input-ultra text-xs font-bold p-2 h-[42px] cursor-pointer">
+                            <option value="LONG">LONG (Buy)</option>
+                            <option value="SHORT">SHORT (Sell)</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-[10px] font-bold text-slate-400 mb-1.5 uppercase tracking-wider">Quantity</label>
+                        <input type="number" id="qty" placeholder="0" required step="any" min="0.001" class="input-ultra font-mono text-sm h-[42px]">
+                    </div>
+                </div>
+                
+                <div class="pt-2">
+                    <label class="block text-[10px] font-bold text-slate-400 mb-1.5 uppercase tracking-wider">Entry Price</label>
+                    <input type="number" id="entry" placeholder="0.00" required step="any" class="input-ultra font-mono text-lg font-bold mb-4 text-sky-500">
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-[10px] font-bold text-slate-400 mb-1.5 uppercase tracking-wider">SL (%)</label>
+                            <input type="number" id="sl_pct" placeholder="e.g. 1.5" step="any" class="input-ultra font-mono text-sm text-rose-500 font-bold">
+                        </div>
+                        <div>
+                            <label class="block text-[10px] font-bold text-slate-400 mb-1.5 uppercase tracking-wider">Target</label>
+                            <input type="number" id="exit" placeholder="0.00" step="any" class="input-ultra font-mono text-sm text-emerald-500 font-bold">
+                        </div>
+                    </div>
+                </div>
+                
+                <button type="submit" class="w-full btn-ultra text-xs uppercase tracking-widest mt-4">Deploy Trade</button>
+            </form>
         </div>
     </div>
 
@@ -417,7 +420,6 @@
                 if (dbRef) dbRef.off();
                 dbRef = fbDatabase.ref('users/' + currentUser + '/trades');
                 dbRef.on('value', (snapshot) => {
-                    // Fallback to local storage if Firebase returns null
                     trades = snapshot.val() || JSON.parse(localStorage.getItem('dreamTrader_backup')) || [];
                     renderUI(); 
                 }, (error) => {
@@ -438,7 +440,6 @@
         function loginWithGoogle() { fbAuth.signInWithPopup(googleProvider).catch((error) => { document.getElementById('authError').innerText = error.message; }); }
         function logoutUser() { fbAuth.signOut(); }
         
-        // Updated Save Data (with LocalStorage Backup)
         function saveData() { 
             if (currentUser) {
                 fbDatabase.ref('users/' + currentUser + '/trades').set(trades).catch(e => console.log("Firebase Save Error:", e));
@@ -454,10 +455,8 @@
             return symbol;
         }
 
-        // ================= IMPORT & EXPORT DATA FUNCTIONS =================
-        function triggerImport() {
-            document.getElementById('importFile').click();
-        }
+        // ================= IMPORT & EXPORT DATA =================
+        function triggerImport() { document.getElementById('importFile').click(); }
 
         function importData(event) {
             const file = event.target.files[0];
@@ -484,14 +483,11 @@
                 }
             };
             reader.readAsArrayBuffer(file);
-            event.target.value = ""; // Reset file input
+            event.target.value = ""; 
         }
 
         function exportData() {
-            if (!trades || trades.length === 0) {
-                alert("No active trades to export!");
-                return;
-            }
+            if (!trades || trades.length === 0) return alert("No active trades to export!");
             try {
                 const worksheet = XLSX.utils.json_to_sheet(trades);
                 const workbook = XLSX.utils.book_new();
@@ -501,6 +497,25 @@
                 alert('Error exporting data: ' + error.message);
             }
         }
+
+        // ================= MODALS =================
+        function openTradeModal() { document.getElementById('newTradeModal').style.display = 'flex'; }
+        function closeTradeModal() { document.getElementById('newTradeModal').style.display = 'none'; }
+
+        function openEditModal(id) {
+            const t = trades.find(t => t.id === id); if (!t) return;
+            document.getElementById('editTradeId').value = id;
+            document.getElementById('editQty').value = t.qty;
+            document.getElementById('editEntry').value = t.entry;
+            document.getElementById('editModal').style.display = 'flex';
+        }
+        function closeEditModal() { document.getElementById('editModal').style.display = 'none'; }
+
+        function openCloseModal(id, symbol) {
+            document.getElementById('modalTradeId').value = id; document.getElementById('modalTitle').innerText = `Close ${symbol}`;
+            document.getElementById('closeModal').style.display = 'flex';
+        }
+        function closeModalFunc() { document.getElementById('closeModal').style.display = 'none'; }
 
         // ================= TRADE MANAGEMENT =================
         document.getElementById('tradeForm').addEventListener('submit', function(e) {
@@ -525,10 +540,10 @@
             trades.unshift({ id: Date.now(), date: dateStr, symbol, type, qty, entry, sl: sl, exit, pnl, status: isClosed ? 'CLOSED' : 'OPEN', liveCMP: entry, slHit: false });
             
             saveData(); 
-            renderUI(); // Forces UI to update immediately
+            renderUI(); 
             
             this.reset(); 
-            document.getElementById('symbol').focus();
+            closeTradeModal(); // Close modal after adding
             subscribeOpenTrades();
         });
 
@@ -536,31 +551,9 @@
             if (confirm("Delete this trade entirely?")) { 
                 trades = trades.filter(t => t.id !== id); 
                 saveData(); 
-                renderUI(); // Forces UI to update immediately
+                renderUI(); 
             } 
         }
-        
-        function checkStopLoss(trade) {
-            if (trade.sl && !trade.slHit) {
-                if ((trade.type === 'LONG' && trade.liveCMP <= trade.sl) || (trade.type === 'SHORT' && trade.liveCMP >= trade.sl)) {
-                    trade.slHit = true; 
-                    saveData();
-                    renderUI(); // Forces UI to update immediately
-                    alertSound.play().catch(() => {});
-                    alert(`🚨 SL HIT ALERT!\n\nSymbol: ${trade.symbol}\nSL Price: ₹${trade.sl.toFixed(2)}\nCurrent Price: ₹${trade.liveCMP}`);
-                }
-            }
-        }
-
-        // ================= MODALS =================
-        function openEditModal(id) {
-            const t = trades.find(t => t.id === id); if (!t) return;
-            document.getElementById('editTradeId').value = id;
-            document.getElementById('editQty').value = t.qty;
-            document.getElementById('editEntry').value = t.entry;
-            document.getElementById('editModal').style.display = 'flex';
-        }
-        function closeEditModal() { document.getElementById('editModal').style.display = 'none'; }
         
         function submitEditTrade() {
             const t = trades.find(t => t.id === parseInt(document.getElementById('editTradeId').value));
@@ -568,17 +561,11 @@
                 t.qty = parseFloat(document.getElementById('editQty').value) || t.qty; 
                 t.entry = parseFloat(document.getElementById('editEntry').value) || t.entry; 
                 saveData(); 
-                renderUI(); // Forces UI to update immediately
+                renderUI(); 
                 closeEditModal(); 
             }
         }
 
-        function openCloseModal(id, symbol) {
-            document.getElementById('modalTradeId').value = id; document.getElementById('modalTitle').innerText = `Close ${symbol}`;
-            document.getElementById('closeModal').style.display = 'flex';
-        }
-        function closeModalFunc() { document.getElementById('closeModal').style.display = 'none'; }
-        
         function submitCloseTrade() {
             const exit = parseFloat(document.getElementById('modalExitPrice').value); if (isNaN(exit)) return alert("Enter valid price");
             const t = trades.find(t => t.id === parseInt(document.getElementById('modalTradeId').value));
@@ -587,9 +574,21 @@
                 t.status = 'CLOSED'; 
                 t.pnl = t.type === 'LONG' ? (exit - t.entry) * t.qty : (t.entry - exit) * t.qty; 
                 saveData(); 
-                renderUI(); // Forces UI to update immediately
+                renderUI(); 
                 closeModalFunc(); 
                 document.getElementById('modalExitPrice').value = ''; 
+            }
+        }
+        
+        function checkStopLoss(trade) {
+            if (trade.sl && !trade.slHit) {
+                if ((trade.type === 'LONG' && trade.liveCMP <= trade.sl) || (trade.type === 'SHORT' && trade.liveCMP >= trade.sl)) {
+                    trade.slHit = true; 
+                    saveData();
+                    renderUI(); 
+                    alertSound.play().catch(() => {});
+                    alert(`🚨 SL HIT ALERT!\n\nSymbol: ${trade.symbol}\nSL Price: ₹${trade.sl.toFixed(2)}\nCurrent Price: ₹${trade.liveCMP}`);
+                }
             }
         }
 
