@@ -417,9 +417,13 @@
                 if (dbRef) dbRef.off();
                 dbRef = fbDatabase.ref('users/' + currentUser + '/trades');
                 dbRef.on('value', (snapshot) => {
-                    trades = snapshot.val() || [];
+                    // Fallback to local storage if Firebase returns null
+                    trades = snapshot.val() || JSON.parse(localStorage.getItem('dreamTrader_backup')) || [];
                     renderUI(); 
-                    fetchPrevCloseForOpenTrades();
+                }, (error) => {
+                    console.log("Firebase Read Error:", error);
+                    trades = JSON.parse(localStorage.getItem('dreamTrader_backup')) || [];
+                    renderUI();
                 });
             } else {
                 currentUser = null;
@@ -433,7 +437,14 @@
         function loginUser() { fbAuth.signInWithEmailAndPassword(document.getElementById('authEmail').value, document.getElementById('authPassword').value).catch((error) => { document.getElementById('authError').innerText = error.message; }); }
         function loginWithGoogle() { fbAuth.signInWithPopup(googleProvider).catch((error) => { document.getElementById('authError').innerText = error.message; }); }
         function logoutUser() { fbAuth.signOut(); }
-        function saveData() { if (currentUser) fbDatabase.ref('users/' + currentUser + '/trades').set(trades); }
+        
+        // Updated Save Data (with LocalStorage Backup)
+        function saveData() { 
+            if (currentUser) {
+                fbDatabase.ref('users/' + currentUser + '/trades').set(trades).catch(e => console.log("Firebase Save Error:", e));
+            }
+            localStorage.setItem('dreamTrader_backup', JSON.stringify(trades));
+        }
 
         function formatTVSymbol(symbol) {
             if (symbol === "NIFTY") return "BSE:NIFTY50";
@@ -441,6 +452,54 @@
             if (symbol.includes("USDT") || symbol.includes("BTC")) return "BINANCE:" + symbol;
             if (!symbol.includes(":")) return "BSE:" + symbol;
             return symbol;
+        }
+
+        // ================= IMPORT & EXPORT DATA FUNCTIONS =================
+        function triggerImport() {
+            document.getElementById('importFile').click();
+        }
+
+        function importData(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const data = new Uint8Array(e.target.result);
+                    const workbook = XLSX.read(data, {type: 'array'});
+                    const firstSheetName = workbook.SheetNames[0];
+                    const worksheet = workbook.Sheets[firstSheetName];
+                    const json = XLSX.utils.sheet_to_json(worksheet);
+                    
+                    if (json && json.length > 0) {
+                        trades = json;
+                        saveData();
+                        renderUI();
+                        alert('Data imported successfully!');
+                    } else {
+                        alert('No data found in the file.');
+                    }
+                } catch (error) {
+                    alert('Error importing file: ' + error.message);
+                }
+            };
+            reader.readAsArrayBuffer(file);
+            event.target.value = ""; // Reset file input
+        }
+
+        function exportData() {
+            if (!trades || trades.length === 0) {
+                alert("No active trades to export!");
+                return;
+            }
+            try {
+                const worksheet = XLSX.utils.json_to_sheet(trades);
+                const workbook = XLSX.utils.book_new();
+                XLSX.utils.book_append_sheet(workbook, worksheet, "Trades");
+                XLSX.writeFile(workbook, "DreamTrader_Data.xlsx");
+            } catch (error) {
+                alert('Error exporting data: ' + error.message);
+            }
         }
 
         // ================= TRADE MANAGEMENT =================
@@ -464,17 +523,29 @@
             const dateStr = new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
             
             trades.unshift({ id: Date.now(), date: dateStr, symbol, type, qty, entry, sl: sl, exit, pnl, status: isClosed ? 'CLOSED' : 'OPEN', liveCMP: entry, slHit: false });
-            saveData(); this.reset(); document.getElementById('symbol').focus();
+            
+            saveData(); 
+            renderUI(); // Forces UI to update immediately
+            
+            this.reset(); 
+            document.getElementById('symbol').focus();
             subscribeOpenTrades();
-            fetchPrevCloseForOpenTrades();
         });
 
-        function deleteTrade(id) { if (confirm("Delete this trade entirely?")) { trades = trades.filter(t => t.id !== id); saveData(); } }
+        function deleteTrade(id) { 
+            if (confirm("Delete this trade entirely?")) { 
+                trades = trades.filter(t => t.id !== id); 
+                saveData(); 
+                renderUI(); // Forces UI to update immediately
+            } 
+        }
         
         function checkStopLoss(trade) {
             if (trade.sl && !trade.slHit) {
                 if ((trade.type === 'LONG' && trade.liveCMP <= trade.sl) || (trade.type === 'SHORT' && trade.liveCMP >= trade.sl)) {
-                    trade.slHit = true; saveData();
+                    trade.slHit = true; 
+                    saveData();
+                    renderUI(); // Forces UI to update immediately
                     alertSound.play().catch(() => {});
                     alert(`🚨 SL HIT ALERT!\n\nSymbol: ${trade.symbol}\nSL Price: ₹${trade.sl.toFixed(2)}\nCurrent Price: ₹${trade.liveCMP}`);
                 }
@@ -490,9 +561,16 @@
             document.getElementById('editModal').style.display = 'flex';
         }
         function closeEditModal() { document.getElementById('editModal').style.display = 'none'; }
+        
         function submitEditTrade() {
             const t = trades.find(t => t.id === parseInt(document.getElementById('editTradeId').value));
-            if (t) { t.qty = parseFloat(document.getElementById('editQty').value) || t.qty; t.entry = parseFloat(document.getElementById('editEntry').value) || t.entry; saveData(); closeEditModal(); }
+            if (t) { 
+                t.qty = parseFloat(document.getElementById('editQty').value) || t.qty; 
+                t.entry = parseFloat(document.getElementById('editEntry').value) || t.entry; 
+                saveData(); 
+                renderUI(); // Forces UI to update immediately
+                closeEditModal(); 
+            }
         }
 
         function openCloseModal(id, symbol) {
@@ -500,10 +578,19 @@
             document.getElementById('closeModal').style.display = 'flex';
         }
         function closeModalFunc() { document.getElementById('closeModal').style.display = 'none'; }
+        
         function submitCloseTrade() {
             const exit = parseFloat(document.getElementById('modalExitPrice').value); if (isNaN(exit)) return alert("Enter valid price");
             const t = trades.find(t => t.id === parseInt(document.getElementById('modalTradeId').value));
-            if (t) { t.exit = exit; t.status = 'CLOSED'; t.pnl = t.type === 'LONG' ? (exit - t.entry) * t.qty : (t.entry - exit) * t.qty; saveData(); closeModalFunc(); document.getElementById('modalExitPrice').value = ''; }
+            if (t) { 
+                t.exit = exit; 
+                t.status = 'CLOSED'; 
+                t.pnl = t.type === 'LONG' ? (exit - t.entry) * t.qty : (t.entry - exit) * t.qty; 
+                saveData(); 
+                renderUI(); // Forces UI to update immediately
+                closeModalFunc(); 
+                document.getElementById('modalExitPrice').value = ''; 
+            }
         }
 
         // ================= RENDER UI (KPIs) =================
@@ -721,42 +808,6 @@
             if (symbols.length > 0) {
                 try { await fetch(`${SERVER_URL}/api/subscribe`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ symbols: symbols }) }); } 
                 catch (e) {}
-            }
-        }
-
-        // ================= PREVIOUS CLOSE (for Day P&L) =================
-        async function fetchPrevCloseForOpenTrades() {
-            const openTrades = trades.filter(t => t.status === 'OPEN');
-            if (openTrades.length === 0) return;
-
-            const symbols = openTrades.map(t => t.symbol);
-            const todayStr = new Date().toDateString();
-
-            // Avoid refetching if already fetched today for all symbols
-            const needsFetch = openTrades.some(t => t.prevCloseDate !== todayStr);
-            if (!needsFetch) return;
-
-            try {
-                const res = await fetch(`${SERVER_URL}/api/prev-close`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ symbols: symbols })
-                });
-                const result = await res.json();
-
-                if (result.status === 'success' && result.data) {
-                    let updated = false;
-                    trades.forEach(t => {
-                        if (t.status === 'OPEN' && result.data[t.symbol] != null) {
-                            t.prevClose = parseFloat(result.data[t.symbol]);
-                            t.prevCloseDate = todayStr;
-                            updated = true;
-                        }
-                    });
-                    if (updated) { saveData(); renderUI(); }
-                }
-            } catch (e) {
-                console.error('Failed to fetch previous close prices:', e);
             }
         }
     </script>
