@@ -448,10 +448,10 @@
         }
 
         function formatTVSymbol(symbol) {
-            if (symbol === "NIFTY") return "BSE:NIFTY50";
-            if (symbol === "BANKNIFTY") return "BSE:BANKNIFTY";
+            if (symbol === "NIFTY") return "NSE:NIFTY50";
+            if (symbol === "BANKNIFTY") return "NSE:BANKNIFTY";
             if (symbol.includes("USDT") || symbol.includes("BTC")) return "BINANCE:" + symbol;
-            if (!symbol.includes(":")) return "BSE:" + symbol;
+            if (!symbol.includes(":")) return "NSE:" + symbol;
             return symbol;
         }
 
