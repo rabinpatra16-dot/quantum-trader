@@ -810,6 +810,32 @@ const SERVER_URL = "https://quantum-backend-soqz.onrender.com";
                 catch (e) {}
             }
         }
+ async function fetchStaticQuotes() {
+            const symbols = [...new Set(trades.filter(t => t.status === 'OPEN').map(t => t.symbol))];
+            if (symbols.length === 0) return;
+            
+            try {
+                const response = await fetch(`${SERVER_URL}/api/quote`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ symbols: symbols })
+                });
+                const data = await response.json();
+                
+                if (data.status === 'success') {
+                    let isUpdated = false;
+                    trades.forEach(t => {
+                        if (t.status === 'OPEN' && data.quotes[t.symbol]) {
+                            t.liveCMP = parseFloat(data.quotes[t.symbol]);
+                            isUpdated = true;
+                        }
+                    });
+                    if (isUpdated) { saveData(); renderUI(); }
+                }
+            } catch (e) {
+                console.log("Static Quote Error:", e);
+            }
+        }
     </script>
 </body>
 </html>
