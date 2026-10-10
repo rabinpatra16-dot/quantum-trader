@@ -1,10 +1,6 @@
-Flask==3.0.0
-flask-cors==4.0.0
-fyers-apiv3==3.0.4
-Flask-SocketIO==5.3.6
-eventlet==0.35.1
-aiohttp==3.8.4
-gunicorn==21.2.0
-firebase-admin==6.5.0
-requests==2.31.0
-yfinance
+flask
+flask-socketio
+flask-cors
+requests
+pyotp
+gunicorn
