@@ -781,6 +781,7 @@
             }
             subscribeOpenTrades();
             fetchStaticQuotes(); 
+            setInterval(fetchStaticQuotes, 2000);
         });
 
         socket.on('disconnect', () => {
