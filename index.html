@@ -773,13 +773,14 @@
 const SERVER_URL = "https://quantum-backend-soqz.onrender.com";
         const socket = io(SERVER_URL);
 
-        socket.on('connect', () => {
+       socket.on('connect', () => {
             const btn = document.getElementById('autoSyncBtn');
             if(btn) { 
                 btn.innerHTML = "Live Sync: ON 🟢"; 
                 btn.className = "text-[10px] bg-emerald-500/10 text-emerald-500 px-4 py-2 rounded-lg uppercase font-bold border border-emerald-500/30 tracking-wider"; 
             }
             subscribeOpenTrades();
+            fetchStaticQuotes(); // <--- EI LINE-TA NOTUN ADD HOBE
         });
 
         socket.on('disconnect', () => {
