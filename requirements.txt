@@ -4,4 +4,3 @@ Flask-CORS==4.0.0
 requests
 pyotp==2.9.0
 gunicorn
-neo-api-client
