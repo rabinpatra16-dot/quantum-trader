@@ -47,24 +47,15 @@ def login_kotak():
     global client
     try:
         print("⏳ Connecting to Kotak Neo Live WebSocket...")
-        
-        # Notun SDK niyam: consumer_secret deya baddhotamulok (Amra faka rakhchi jodi apnar na thake)
-        client = NeoAPI(consumer_key=CONSUMER_KEY, consumer_secret="", environment='prod')
-        
-        # Event bind kora hocche
-        client.on_message = on_message
-        client.on_error = on_error
-        
-        # Ebar ar login error asbe na
+        client = NeoAPI(consumer_key=CONSUMER_KEY, environment='prod', on_message=on_message, on_error=on_error)
         client.login(mobilenumber=MOBILE_NO, password=PASSWORD)
         
         live_otp = pyotp.TOTP(TOTP_SECRET).now()
         client.session_2fa(live_otp)
-        
         print("✅ Kotak Neo WebSocket Login Success!")
     except Exception as e:
         print("❌ Login Error:", e)
-
+        
 @app.route('/api/subscribe', methods=['POST'])
 def subscribe():
     data = request.json
