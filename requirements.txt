@@ -4,4 +4,4 @@ Flask-CORS==4.0.0
 requests==2.31.0
 pyotp==2.9.0
 gunicorn
-neo-api-client
+git+https://github.com/Kotak-Neo/Kotak-neo-api-v2.git
