@@ -47,11 +47,23 @@ def login_kotak():
     global client
     try:
         print("⏳ Connecting to Kotak Neo Live WebSocket...")
-        client = NeoAPI(consumer_key=CONSUMER_KEY, environment='prod', on_message=on_message, on_error=on_error)
-        client.login(mobilenumber=MOBILE_NO, password=PASSWORD)
         
+        # Initialize client (Ekhane shudhu consumer_key lagbe, ar kichu na)
+        client = NeoAPI(consumer_key=CONSUMER_KEY, environment='prod')
+        
+        # Callback setup
+        client.on_message = on_message
+        client.on_error = on_error
+        
+        # OTP generate kora
         live_otp = pyotp.TOTP(TOTP_SECRET).now()
-        client.session_2fa(live_otp)
+        
+        # Notun V2 Login Flow (Password er jaigay ebar UCC lagbe)
+        client.totp_login(mobilenumber=MOBILE_NO, ucc="YMPX5", totp=live_otp)
+        
+        # Jodi login er somoy kono "2fa" error ashe, tobe nicher line tar theke # chinho soriye apnar 6 digit MPIN bosiye deben:
+        # client.totp_validate(mpin="APNAR_6_DIGIT_MPIN")
+        
         print("✅ Kotak Neo WebSocket Login Success!")
     except Exception as e:
         print("❌ Login Error:", e)
