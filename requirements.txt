@@ -4,3 +4,9 @@ flask-cors
 requests
 pyotp
 gunicorn
+Flask==3.0.0
+Flask-SocketIO==5.3.6
+Flask-CORS==4.0.0
+requests==2.31.0
+pyotp==2.9.0
+neo-api-client==1.1.2
