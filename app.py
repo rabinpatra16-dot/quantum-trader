@@ -1,55 +1,28 @@
+import os
+import requests
+import pyotp
 from flask import Flask, request, jsonify
 from flask_socketio import SocketIO
 from flask_cors import CORS
-from neo_api_client import NeoAPI
-import pyotp
 
 app = Flask(__name__)
 CORS(app)
-socketio = SocketIO(app, cors_allowed_origins="*")
+# threading mode e server chalale free tier e RAM kom khay
+socketio = SocketIO(app, cors_allowed_origins="*", async_mode='threading') 
 
-# ================= KOTAK NEO CREDENTIALS =================
+# ==========================================
+# APNAR CREDENTIALS EKHANE BOSABEN
+# ==========================================
 CONSUMER_KEY = "24786b69-9a65-443e-9fe0-34d50f5dbcf1"
-MOBILE_NO = "+918910025743" 
-PASSWORD = "Raghu@1992" 
-TOTP_SECRET = "RU2IFJABQOUYZ7NAYNHDT76BBE" 
-
-client = None
-
-# Ekhane apnar Stock-er nam ebong Kotak-er ID (Instrument Token) map kora ache
-TOKEN_MAP = {
-    "PAYTM": "11184",
-    "TITAN": "3506",
-    "INFY": "1594",
-    "SIEMENS": "3150",
-    "BAJAJFINSV": "16675"
-}
-REVERSE_TOKEN_MAP = {v: k for k, v in TOKEN_MAP.items()}
-
-# === WebSocket Tick Receiver (Live Data asle eta run hobe) ===
-def on_message(message):
-    try:
-        for tick in message:
-            tk = str(tick.get("instrument_token"))
-            ltp = float(tick.get("last_traded_price", 0))
-            
-            # Token miliye Frontend-e sathe sathe push kora hocche
-            if tk in REVERSE_TOKEN_MAP and ltp > 0:
-                symbol = REVERSE_TOKEN_MAP[tk]
-                socketio.emit('live_price', {'symbol': symbol, 'price': ltp})
-    except Exception as e:
-        print("WS Tick Error:", e)
-
-def on_error(error_message):
-    print("WS Error:", error_message)
-
-import requests
-import pyotp
+MOBILE_NO = "8910025743" # +91 chhara bosaben
+UCC = "YMPX5" 
+MPIN = "073207"
+TOTP_SECRET = "5E3VUH7R5LU576UBAHQENFZVNA"
 
 def login_kotak():
     print("⏳ Initiating Kotak Neo Login via Direct API...")
     
-    # API Endpoints
+    # Kotak er ashol login endpoints
     login_url = "https://mis.kotaksecurities.com/login/1.0/tradeApiLogin"
     validate_url = "https://mis.kotaksecurities.com/login/1.0/tradeApiValidate"
     
@@ -57,14 +30,14 @@ def login_kotak():
     
     # Step 1: Login Headers & Body (As per documentation)
     headers = {
-        "Authorization": f"Bearer {CONSUMER_KEY}", # Ba apnar dashboard-er plain token
+        "Authorization": f"Bearer {CONSUMER_KEY}", # Jodi error dey, tahole shudhu f"{CONSUMER_KEY}" try korben
         "neo-fin-key": "neotradeapi",
         "Content-Type": "application/json"
     }
     
     payload = {
         "mobileNumber": f"+91{MOBILE_NO}", # +91 thaka baddhotamulok
-        "ucc": "APNAR_UCC_EKHANE_DIN",
+        "ucc": UCC,
         "totp": live_otp
     }
     
@@ -84,8 +57,8 @@ def login_kotak():
             val_headers["Auth"] = view_token
             
             val_payload = {
-                "ucc": "YMPX5",
-                "mpin": "073207"
+                "ucc": UCC,
+                "mpin": MPIN
             }
             
             # Request for Step 2
@@ -93,8 +66,9 @@ def login_kotak():
             val_data = val_response.json()
             
             if val_data.get("status") == "success" or "data" in val_data:
-                 print("✅ Kotak Neo Direct Login Complete! Received Trade Token.")
-                 # Ekhane apnar WebSocket code start korte paren
+                 print("✅ Kotak Neo Direct Login Complete! Server is ready.")
+                 trade_token = val_data["data"]["token"]
+                 # Ebar ekhane WebSocket theke data tanar custom kaj shuru korte paren jodi dorkar hoy
             else:
                  print("❌ MPIN Validation Failed:", val_data)
         else:
@@ -102,33 +76,20 @@ def login_kotak():
             
     except Exception as e:
         print("❌ API Error:", e)
-        
-@app.route('/api/subscribe', methods=['POST'])
-def subscribe():
-    data = request.json
-    symbols = data.get('symbols', [])
-    
-    instruments = []
-    for sym in symbols:
-        tk = TOKEN_MAP.get(sym)
-        if tk:
-            instruments.append({"instrument_token": str(tk), "exchange_segment": "nse_cm"})
-    
-    # Kotak ke bola hocche ei stock gulor live tick pathate
-    if instruments and client:
-        try:
-            client.subscribe(instrument_tokens=instruments)
-            print(f"📡 Subscribed to Live WS: {instruments}")
-        except Exception as e:
-            print("Subscribe Error:", e)
-            
-    return jsonify({"status": "success", "subscribed": symbols})
+
+# ==========================================
+# Ekhane apnar aager toiri kora /api/subscribe ebong on_message 
+# function gulo rekhe deben. Segulo ami change korlam na.
+# ==========================================
+
+@app.route('/')
+def home():
+    return "✅ Quantum Backend is Live and Running!"
 
 if __name__ == '__main__':
-    import os
     login_kotak()
-    print("🚀 Real-Time Server running...")
+    print("🚀 Starting Web Server...")
     
-    # Render-er deya dynamic port ebong 0.0.0.0 host use kora hocche
+    # Render-er deya dynamic port use korchi jate "No open ports" error na ashe
     port = int(os.environ.get("PORT", 5000))
     socketio.run(app, host="0.0.0.0", port=port, allow_unsafe_werkzeug=True)
