@@ -43,30 +43,65 @@ def on_message(message):
 def on_error(error_message):
     print("WS Error:", error_message)
 
+import requests
+import pyotp
+
 def login_kotak():
-    global client
+    print("⏳ Initiating Kotak Neo Login via Direct API...")
+    
+    # API Endpoints
+    login_url = "https://mis.kotaksecurities.com/login/1.0/tradeApiLogin"
+    validate_url = "https://mis.kotaksecurities.com/login/1.0/tradeApiValidate"
+    
+    live_otp = pyotp.TOTP(TOTP_SECRET).now()
+    
+    # Step 1: Login Headers & Body (As per documentation)
+    headers = {
+        "Authorization": f"Bearer {CONSUMER_KEY}", # Ba apnar dashboard-er plain token
+        "neo-fin-key": "neotradeapi",
+        "Content-Type": "application/json"
+    }
+    
+    payload = {
+        "mobileNumber": f"+91{MOBILE_NO}", # +91 thaka baddhotamulok
+        "ucc": "APNAR_UCC_EKHANE_DIN",
+        "totp": live_otp
+    }
+    
     try:
-        print("⏳ Connecting to Kotak Neo Live WebSocket...")
+        # Request for Step 1
+        response = requests.post(login_url, headers=headers, json=payload)
+        data = response.json()
         
-        # Initialize client (Ekhane shudhu consumer_key lagbe, ar kichu na)
-        client = NeoAPI(consumer_key=CONSUMER_KEY, environment='prod')
-        
-        # Callback setup
-        client.on_message = on_message
-        client.on_error = on_error
-        
-        # OTP generate kora
-        live_otp = pyotp.TOTP(TOTP_SECRET).now()
-        
-        # Notun V2 Login Flow (Password er jaigay ebar UCC lagbe)
-        client.totp_login(mobilenumber=MOBILE_NO, ucc="YMPX5", totp=live_otp)
-        
-        # Jodi login er somoy kono "2fa" error ashe, tobe nicher line tar theke # chinho soriye apnar 6 digit MPIN bosiye deben:
-        # client.totp_validate(mpin="APNAR_6_DIGIT_MPIN")
-        
-        print("✅ Kotak Neo WebSocket Login Success!")
+        if data.get("status") == "success" or "data" in data:
+            print("✅ Step 1 Success: Received View Token & SID")
+            sid = data["data"]["sid"]
+            view_token = data["data"]["token"]
+            
+            # Step 2: Validate MPIN Headers & Body
+            val_headers = headers.copy()
+            val_headers["sid"] = sid
+            val_headers["Auth"] = view_token
+            
+            val_payload = {
+                "ucc": "YMPX5",
+                "mpin": "073207"
+            }
+            
+            # Request for Step 2
+            val_response = requests.post(validate_url, headers=val_headers, json=val_payload)
+            val_data = val_response.json()
+            
+            if val_data.get("status") == "success" or "data" in val_data:
+                 print("✅ Kotak Neo Direct Login Complete! Received Trade Token.")
+                 # Ekhane apnar WebSocket code start korte paren
+            else:
+                 print("❌ MPIN Validation Failed:", val_data)
+        else:
+            print("❌ Login Failed:", data)
+            
     except Exception as e:
-        print("❌ Login Error:", e)
+        print("❌ API Error:", e)
         
 @app.route('/api/subscribe', methods=['POST'])
 def subscribe():
