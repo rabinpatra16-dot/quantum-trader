@@ -769,36 +769,37 @@
             });
         }
 
-    // ================= WEBSOCKET LOGIC =================
+  // ================= WEBSOCKET LOGIC =================
         const SERVER_URL = "https://quantum-backend-soqz.onrender.com"; 
         const socket = io(SERVER_URL);
 
         socket.on('connect', () => {
             const btn = document.getElementById('autoSyncBtn');
             if(btn) { 
-                btn.innerHTML = "Live Sync: ON 🟢"; 
-                btn.className = "text-[10px] bg-emerald-500/10 text-emerald-500 px-4 py-2 rounded-lg uppercase font-bold border border-emerald-500/30 tracking-wider"; 
+                btn.innerHTML = "Kotak Live WS: ON 🟢"; 
+                btn.className = "text-[10px] bg-emerald-500/10 text-emerald-500 px-4 py-2 rounded-lg uppercase font-bold border border-emerald-500/30 tracking-wider animate-pulse"; 
             }
             subscribeOpenTrades();
-            fetchStaticQuotes(); 
-            setInterval(fetchStaticQuotes, 2000);
         });
 
         socket.on('disconnect', () => {
             const btn = document.getElementById('autoSyncBtn');
             if(btn) { 
-                btn.innerHTML = "Live Sync: OFF 🔴"; 
+                btn.innerHTML = "WS: OFF 🔴"; 
                 btn.className = "text-[10px] bg-slate-800/80 text-slate-500 px-4 py-2 rounded-lg uppercase font-bold border border-slate-600 tracking-wider"; 
             }
         });
 
+        // 🌟 KOTAK THEKE DIRECT MILLISECOND TICK RECEIVE 🌟
         socket.on('live_price', (data) => {
             let isUpdated = false;
             trades.forEach(t => {
                 if (t.status === 'OPEN' && t.symbol === data.symbol) {
-                    t.liveCMP = parseFloat(data.price); 
-                    checkStopLoss(t);
-                    isUpdated = true;
+                    if(t.liveCMP !== data.price) {
+                        t.liveCMP = parseFloat(data.price); 
+                        checkStopLoss(t);
+                        isUpdated = true;
+                    }
                 }
             });
             if (isUpdated) { saveData(); renderUI(); }
@@ -807,51 +808,13 @@
         async function subscribeOpenTrades() {
             const symbols = trades.filter(t => t.status === 'OPEN').map(t => t.symbol);
             if (symbols.length > 0) {
-                try { await fetch(`${SERVER_URL}/api/subscribe`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ symbols: symbols }) }); } 
-                catch (e) {}
-            }
-        }
-
-        // 🌟 DIRECT TRADINGVIEW API (Bypasses Backend Block) 🌟
-        async function fetchStaticQuotes() {
-            const openTrades = trades.filter(t => t.status === 'OPEN');
-            if (openTrades.length === 0) return;
-
-            // TradingView format e symbol banano
-            const tickers = openTrades.map(t => "NSE:" + t.symbol);
-
-            try {
-                const response = await fetch("https://scanner.tradingview.com/india/scan", {
-                    method: "POST",
-                    body: JSON.stringify({
-                        "symbols": { "tickers": tickers },
-                        "columns": ["close"]
-                    })
-                });
-                
-                const result = await response.json();
-                
-                if (result && result.data) {
-                    let isUpdated = false;
-                    result.data.forEach(item => {
-                        const sym = item.s.replace("NSE:", "");
-                        const ltp = item.d[0]; // TradingView theke direct LTP
-                        
-                        trades.forEach(t => {
-                            if (t.symbol === sym && t.status === 'OPEN') {
-                                t.liveCMP = ltp;
-                                isUpdated = true;
-                            }
-                        });
-                    });
-                    
-                    if (isUpdated) { 
-                        saveData(); 
-                        renderUI(); 
-                    }
-                }
-            } catch (e) {
-                console.log("TradingView API Error:", e);
+                try { 
+                    await fetch(`${SERVER_URL}/api/subscribe`, { 
+                        method: 'POST', 
+                        headers: { 'Content-Type': 'application/json' }, 
+                        body: JSON.stringify({ symbols: symbols }) 
+                    }); 
+                } catch (e) { console.log(e); }
             }
         }
     </script>
