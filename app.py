@@ -28,9 +28,9 @@ def login_kotak():
     
     live_otp = pyotp.TOTP(TOTP_SECRET).now()
     
-    # Step 1: Login Headers & Body (As per documentation)
+   # Step 1: Login Headers
     headers = {
-        "Authorization": f"Bearer {CONSUMER_KEY}", # Jodi error dey, tahole shudhu f"{CONSUMER_KEY}" try korben
+        "Authorization": CONSUMER_KEY, # Ekhane f"Bearer..." kete shudhu CONSUMER_KEY bosano holo
         "neo-fin-key": "neotradeapi",
         "Content-Type": "application/json"
     }
