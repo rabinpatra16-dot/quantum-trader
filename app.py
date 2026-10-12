@@ -1,7 +1,7 @@
 from flask import Flask, request, jsonify
 from flask_socketio import SocketIO
 from flask_cors import CORS
-import requests
+from neo_api_client import NeoAPI
 import pyotp
 
 app = Flask(__name__)
@@ -14,47 +14,70 @@ MOBILE_NO = "+918910025743"
 PASSWORD = "Raghu@1992" 
 TOTP_SECRET = "RU2IFJABQOUYZ7NAYNHDT76BBE" 
 
-SESSION_TOKEN = None
+client = None
+
+# Ekhane apnar Stock-er nam ebong Kotak-er ID (Instrument Token) map kora ache
+TOKEN_MAP = {
+    "PAYTM": "11184",
+    "TITAN": "3506",
+    "INFY": "1594",
+    "SIEMENS": "3150",
+    "BAJAJFINSV": "16675"
+}
+REVERSE_TOKEN_MAP = {v: k for k, v in TOKEN_MAP.items()}
+
+# === WebSocket Tick Receiver (Live Data asle eta run hobe) ===
+def on_message(message):
+    try:
+        for tick in message:
+            tk = str(tick.get("instrument_token"))
+            ltp = float(tick.get("last_traded_price", 0))
+            
+            # Token miliye Frontend-e sathe sathe push kora hocche
+            if tk in REVERSE_TOKEN_MAP and ltp > 0:
+                symbol = REVERSE_TOKEN_MAP[tk]
+                socketio.emit('live_price', {'symbol': symbol, 'price': ltp})
+    except Exception as e:
+        print("WS Tick Error:", e)
+
+def on_error(error_message):
+    print("WS Error:", error_message)
 
 def login_kotak():
-    global SESSION_TOKEN
+    global client
     try:
-        print("⏳ Preparing Backend API...")
+        print("⏳ Connecting to Kotak Neo Live WebSocket...")
+        client = NeoAPI(consumer_key=CONSUMER_KEY, environment='prod', on_message=on_message, on_error=on_error)
+        client.login(mobilenumber=MOBILE_NO, password=PASSWORD)
+        
         live_otp = pyotp.TOTP(TOTP_SECRET).now()
-        print(f"🔑 Generated Live TOTP: {live_otp}")
-        print("✅ Backend Server Started Successfully!")
+        client.session_2fa(live_otp)
+        print("✅ Kotak Neo WebSocket Login Success!")
     except Exception as e:
         print("❌ Login Error:", e)
 
 @app.route('/api/subscribe', methods=['POST'])
 def subscribe():
     data = request.json
-    tokens = data.get('tokens', [])
-    print(f"📡 Received symbols to subscribe: {tokens}")
-    return jsonify({"status": "success", "subscribed_tokens": tokens})
-
-@app.route('/api/quote', methods=['POST'])
-def get_static_quote():
-    try:
-        data = request.json
-        symbols = data.get('symbols', [])
-        quotes = {}
-        
-        # Authentic NSE live/closing price fetcher (Fallback API)
-        headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'}
-        
-        for sym in symbols:
-            url = f"https://query1.finance.yahoo.com/v8/finance/chart/{sym}.NS"
-            res = requests.get(url, headers=headers)
-            if res.status_code == 200:
-                price = res.json()['chart']['result'][0]['meta']['regularMarketPrice']
-                quotes[sym] = price
-                
-        return jsonify({"status": "success", "quotes": quotes})
-    except Exception as e:
-        return jsonify({"status": "error", "message": str(e)})
+    symbols = data.get('symbols', [])
+    
+    instruments = []
+    for sym in symbols:
+        tk = TOKEN_MAP.get(sym)
+        if tk:
+            instruments.append({"instrument_token": str(tk), "exchange_segment": "nse_cm"})
+    
+    # Kotak ke bola hocche ei stock gulor live tick pathate
+    if instruments and client:
+        try:
+            client.subscribe(instrument_tokens=instruments)
+            print(f"📡 Subscribed to Live WS: {instruments}")
+        except Exception as e:
+            print("Subscribe Error:", e)
+            
+    return jsonify({"status": "success", "subscribed": symbols})
 
 if __name__ == '__main__':
     login_kotak()
-    print("🚀 Server running on port 5000")
+    print("🚀 Real-Time Server running on port 5000")
     socketio.run(app, port=5000, allow_unsafe_werkzeug=True)
