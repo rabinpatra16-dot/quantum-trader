@@ -543,7 +543,9 @@
             if (isNaN(exit) || exit <= 0) return alert("Enter valid exit price");
             if (isNaN(closeQty) || closeQty <= 0) return alert("Enter valid quantity to close");
 
-            const t = trades.find(t => t.id === parseInt(document.getElementById('modalTradeId').value));
+            const tradeId = parseInt(document.getElementById('modalTradeId').value);
+            const t = trades.find(item => item.id === tradeId);
+            
             if (t) {
                 if (closeQty > t.qty) {
                     return alert("Closing quantity cannot exceed active quantity (" + t.qty + ")");
@@ -555,15 +557,15 @@
                 const partialPnL = t.type === 'LONG' ? (exit - t.entry) * closeQty : (t.entry - exit) * closeQty;
 
                 if (closeQty === t.qty) {
-                    // 100% Full Close: Puro trade-tai closed ledger-e chole jabe
+                    // 100% Full Close
                     t.exit = exit; 
                     t.status = 'CLOSED'; 
                     t.pnl = partialPnL;
                 } else {
-                    // Partial Close: 
-                    // 1. Ekta notun entry closed trade ledger-e jog hobe (e.g. 20 qty)
+                    // Partial Close:
+                    // 1. Close howa অংশটুকু Closed Trade Ledger-e notun entry hishebe add hobe
                     trades.unshift({ 
-                        id: Date.now(), 
+                        id: Date.now() + 1, // Unique ID for closed part
                         date: dateStr, 
                         symbol: t.symbol, 
                         type: t.type, 
@@ -575,8 +577,8 @@
                         status: 'CLOSED' 
                     });
                     
-                    // 2. Active trade-er qty komiye baki ta rakha hobe (e.g. 30 - 20 = 10 qty)
-                    t.qty -= closeQty;
+                    // 2. Active trade-er qty komiye baki ta thakbe (e.g. 30 - 20 = 10)
+                    t.qty = t.qty - closeQty;
                 }
 
                 saveData(); 
