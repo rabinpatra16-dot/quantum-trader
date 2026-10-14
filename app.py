@@ -1,6 +1,5 @@
 import os
-import time
-import threading
+import urllib.parse
 import requests
 import pyotp
 from flask import Flask, request, jsonify
@@ -18,11 +17,10 @@ CONSUMER_KEY = "24786b69-9a65-443e-9fe0-34d50f5dbcf1"
 MOBILE_NO = "8910025743"
 UCC = "YMPX5"
 MPIN = "073207"
-TOTP_SECRET = "W627DHISMLVJNAGLR2BSOE3UQM"
+TOTP_SECRET = "5E3VUH7R5LU576UBAHQENFZVNA"
 
 # ==========================================
 # STOCK TOKEN MAP (NSE Cash Segment Tokens)
-# Apnar aro stock thakle ekhane add korte parben
 # ==========================================
 TOKEN_MAP = {
     "KPITTECH": "9683",
@@ -48,10 +46,8 @@ TOKEN_MAP = {
 }
 REVERSE_TOKEN_MAP = {str(v): k for k, v in TOKEN_MAP.items()}
 
-# Active subscribed symbols (Default-e dashboard-er stock gulo deya thaklo)
 SUBSCRIBED_SYMBOLS = set(TOKEN_MAP.keys())
 
-# Global Session Data
 SESSION_DATA = {
     "trade_token": None,
     "sid": None,
@@ -59,7 +55,7 @@ SESSION_DATA = {
 }
 
 def login_kotak():
-    print("⏳ Initiating Kotak Neo Login via Direct API...")
+    print("⏳ Initiating Kotak Neo Login via Direct API...", flush=True)
     login_url = "https://mis.kotaksecurities.com/login/1.0/tradeApiLogin"
     validate_url = "https://mis.kotaksecurities.com/login/1.0/tradeApiValidate"
     
@@ -82,7 +78,7 @@ def login_kotak():
         data = response.json()
         
         if data.get("status") == "success" or "data" in data:
-            print("✅ Step 1 Success: Received View Token & SID")
+            print("✅ Step 1 Success: Received View Token & SID", flush=True)
             sid = data["data"]["sid"]
             view_token = data["data"]["token"]
             
@@ -98,80 +94,84 @@ def login_kotak():
             val_data = val_response.json()
             
             if val_data.get("status") == "success" or "data" in val_data:
-                print("✅ Kotak Neo Direct Login Complete! Server is ready.")
+                print("✅ Kotak Neo Direct Login Complete! Server is ready.", flush=True)
                 SESSION_DATA["trade_token"] = val_data["data"]["token"]
                 SESSION_DATA["sid"] = val_data["data"].get("sid", sid)
                 if "baseUrl" in val_data["data"] and val_data["data"]["baseUrl"]:
                     SESSION_DATA["base_url"] = val_data["data"]["baseUrl"].rstrip("/")
+                print(f"🔗 Using Base URL: {SESSION_DATA['base_url']}", flush=True)
                 return True
             else:
-                print("❌ MPIN Validation Failed:", val_data)
+                print("❌ MPIN Validation Failed:", val_data, flush=True)
         else:
-            print("❌ Login Failed:", data)
+            print("❌ Login Failed:", data, flush=True)
             
     except Exception as e:
-        print("❌ API Error:", e)
+        print("❌ API Error:", e, flush=True)
     return False
 
 
+def fetch_quotes_once(debug=False):
+    """Kotak theke ekbar quotes fetch kore return korbe"""
+    queries = []
+    for sym in list(SUBSCRIBED_SYMBOLS):
+        tk = TOKEN_MAP.get(sym)
+        if tk:
+            queries.append(f"nse_cm|{tk}")
+
+    if not queries:
+        return None
+
+    # URL encode pipe character (|) as %7C and raw both
+    raw_query = ",".join(queries)
+    encoded_query = urllib.parse.quote(raw_query, safe=",")
+    base = SESSION_DATA["base_url"]
+
+    urls_to_try = [
+        f"{base}/script-details/1.0/quotes/neosymbol/{raw_query}/all",
+        f"{base}/script-details/1.0/quotes/neosymbol/{encoded_query}/all",
+        f"{base}/apim/quotes/1.0/quotes/neosymbol/{raw_query}/all",
+        f"https://mis.kotaksecurities.com/script-details/1.0/quotes/neosymbol/{raw_query}/all"
+    ]
+
+    headers = {
+        "Authorization": CONSUMER_KEY,
+        "Content-Type": "application/json",
+        "neo-fin-key": "neotradeapi",
+        "Auth": SESSION_DATA["trade_token"],
+        "sid": SESSION_DATA["sid"]
+    }
+
+    for url in urls_to_try:
+        try:
+            resp = requests.get(url, headers=headers, timeout=5)
+            if debug:
+                print(f"🔍 Quotes API [{resp.status_code}] -> {url[:65]}... : {resp.text[:250]}", flush=True)
+            if resp.status_code == 200:
+                return resp.json()
+        except Exception as err:
+            if debug:
+                print(f"⚠️ URL Try Error ({url[:40]}): {err}", flush=True)
+    return None
+
+
 def fetch_and_broadcast_prices():
-    """Background worker je prottek 3 second-e Kotak Quotes API theke Live CMP, Change o % Change pathabe"""
-    print("📡 Starting Live Price Broadcaster Thread...")
+    """SocketIO Background Task je prottek 3 second-e price broadcast korbe"""
+    print("📡 Starting Live Price Broadcaster Thread...", flush=True)
     first_run = True
     
     while True:
         try:
             if not SESSION_DATA["trade_token"]:
-                time.sleep(3)
+                socketio.sleep(3)
                 continue
 
-            # Subscribed symbols theke Kotak query banano (e.g., nse_cm|9683,nse_cm|13611)
-            queries = []
-            for sym in list(SUBSCRIBED_SYMBOLS):
-                tk = TOKEN_MAP.get(sym)
-                if tk:
-                    queries.append(f"nse_cm|{tk}")
-
-            if not queries:
-                time.sleep(3)
-                continue
-
-            query_str = ",".join(queries)
-            
-            # Kotak New Architecture Quotes Endpoints (Duto possible URL format try korbe)
-            urls_to_try = [
-                f"{SESSION_DATA['base_url']}/script-details/1.0/quotes/neosymbol/{query_str}/all",
-                f"https://gw-napi.kotaksecurities.com/apim/quotes/1.0/quotes/neosymbol/{query_str}/all"
-            ]
-
-            # Notun Quotes API Header
-            headers = {
-                "Authorization": CONSUMER_KEY,
-                "Content-Type": "application/json",
-                "neo-fin-key": "neotradeapi",
-                "Auth": SESSION_DATA["trade_token"],
-                "sid": SESSION_DATA["sid"]
-            }
-
-            quotes_list = None
-            for quotes_url in urls_to_try:
-                resp = requests.get(quotes_url, headers=headers, timeout=5)
-                if first_run:
-                    print(f"🔍 Quotes API Test [{resp.status_code}] -> {quotes_url[:60]}... : {resp.text[:200]}")
-                
-                if resp.status_code == 200:
-                    quotes_list = resp.json()
-                    break
-
+            quotes_list = fetch_quotes_once(debug=first_run)
             first_run = False
 
             if quotes_list:
                 if isinstance(quotes_list, dict) and "data" in quotes_list:
                     quotes_list = quotes_list["data"]
-                elif isinstance(quotes_list, dict) and "fault" in quotes_list:
-                    print("❌ Quotes API Fault:", quotes_list)
-                    time.sleep(5)
-                    continue
 
                 if isinstance(quotes_list, list):
                     for item in quotes_list:
@@ -181,8 +181,6 @@ def fetch_and_broadcast_prices():
                             continue
 
                         ltp = float(item.get("ltp") or item.get("last_traded_price") or 0)
-                        
-                        # Previous close price
                         ohlc = item.get("ohlc") or {}
                         prev_close = float(
                             ohlc.get("close")
@@ -191,7 +189,6 @@ def fetch_and_broadcast_prices():
                             or ltp
                         )
 
-                        # Value change & Percentage change calculation
                         val_change = float(item.get("change") or (ltp - prev_close))
                         pct_change = float(
                             item.get("per_change")
@@ -199,7 +196,6 @@ def fetch_and_broadcast_prices():
                         )
 
                         if ltp > 0:
-                            # Frontend-er je kono event name-er sathe match koranor jonno emit
                             payload_data = {
                                 'symbol': sym,
                                 'tk': tk,
@@ -210,11 +206,11 @@ def fetch_and_broadcast_prices():
                             }
                             socketio.emit('live_price', payload_data)
                             socketio.emit('price_update', payload_data)
-                            
+                            socketio.emit('tick', payload_data)
         except Exception as e:
-            print("⚠️ Price Fetch Error:", e)
+            print("⚠️ Price Fetch Loop Error:", e, flush=True)
 
-        time.sleep(3)
+        socketio.sleep(3)
 
 
 @app.route('/api/subscribe', methods=['POST', 'OPTIONS'])
@@ -229,11 +225,22 @@ def subscribe():
         sym_clean = str(sym).upper().strip()
         SUBSCRIBED_SYMBOLS.add(sym_clean)
         
-    print(f"✅ Subscribed Symbols Updated: {list(SUBSCRIBED_SYMBOLS)}")
+    print(f"✅ Subscribed Symbols Updated: {list(SUBSCRIBED_SYMBOLS)}", flush=True)
     return jsonify({
         "status": "subscribed",
         "subscribed_symbols": list(SUBSCRIBED_SYMBOLS)
     }), 200
+
+
+@app.route('/api/test-quotes')
+def test_quotes():
+    """Browser theke direct check korar jonno Kotak ki data pathachhe"""
+    res = fetch_quotes_once(debug=True)
+    return jsonify({
+        "base_url": SESSION_DATA["base_url"],
+        "logged_in": bool(SESSION_DATA["trade_token"]),
+        "quotes_response": res
+    })
 
 
 @app.route('/')
@@ -241,15 +248,9 @@ def home():
     return "✅ Quantum Backend is Live and Running!"
 
 
-# Server চালু হওয়ার সাথে সাথেই Login এবং Price Thread স্টার্ট হবে (Gunicorn বা python app.py দুটোতেই কাজ করবে)
-def start_background_services():
-    login_kotak()
-    t = threading.Thread(target=fetch_and_broadcast_prices, daemon=True)
-    t.start()
-
-start_background_services()
-
 if __name__ == '__main__':
-    print("🚀 Starting Web Server...")
+    login_kotak()
+    socketio.start_background_task(fetch_and_broadcast_prices)
+    print("🚀 Starting Web Server...", flush=True)
     port = int(os.environ.get("PORT", 5000))
     socketio.run(app, host="0.0.0.0", port=port, allow_unsafe_werkzeug=True)
