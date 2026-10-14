@@ -536,7 +536,7 @@
             document.getElementById('modalCloseQty').value = '';
         }
 
-        function submitCloseTrade() {
+       function submitCloseTrade() {
             const exit = parseFloat(document.getElementById('modalExitPrice').value); 
             const closeQty = parseFloat(document.getElementById('modalCloseQty').value);
             
@@ -555,12 +555,13 @@
                 const partialPnL = t.type === 'LONG' ? (exit - t.entry) * closeQty : (t.entry - exit) * closeQty;
 
                 if (closeQty === t.qty) {
-                    // 100% Full Close
+                    // 100% Full Close: Puro trade-tai closed ledger-e chole jabe
                     t.exit = exit; 
                     t.status = 'CLOSED'; 
                     t.pnl = partialPnL;
                 } else {
-                    // Partial Close: Create a new closed trade entry in ledger & reduce qty in active trade
+                    // Partial Close: 
+                    // 1. Ekta notun entry closed trade ledger-e jog hobe (e.g. 20 qty)
                     trades.unshift({ 
                         id: Date.now(), 
                         date: dateStr, 
@@ -574,7 +575,7 @@
                         status: 'CLOSED' 
                     });
                     
-                    // Reduce remaining quantity in current open trade
+                    // 2. Active trade-er qty komiye baki ta rakha hobe (e.g. 30 - 20 = 10 qty)
                     t.qty -= closeQty;
                 }
 
