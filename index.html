@@ -543,8 +543,9 @@
             if (isNaN(exit) || exit <= 0) return alert("Enter valid exit price");
             if (isNaN(closeQty) || closeQty <= 0) return alert("Enter valid quantity to close");
 
-            const tradeId = parseInt(document.getElementById('modalTradeId').value);
-            const t = trades.find(item => item.id === tradeId);
+            const tradeId = document.getElementById('modalTradeId').value;
+            // String conversion diye sothik trade khunja jate mismatch na hoy
+            const t = trades.find(item => String(item.id) === String(tradeId));
             
             if (t) {
                 if (closeQty > t.qty) {
@@ -556,7 +557,7 @@
                 // Partial PNL calculation for the closed portion
                 const partialPnL = t.type === 'LONG' ? (exit - t.entry) * closeQty : (t.entry - exit) * closeQty;
 
-                if (closeQty === t.qty) {
+                if (closeQty === t.qty || Math.abs(closeQty - t.qty) < 0.0001) {
                     // 100% Full Close
                     t.exit = exit; 
                     t.status = 'CLOSED'; 
@@ -565,7 +566,7 @@
                     // Partial Close:
                     // 1. Close howa অংশটুকু Closed Trade Ledger-e notun entry hishebe add hobe
                     trades.unshift({ 
-                        id: Date.now() + 1, // Unique ID for closed part
+                        id: Date.now() + Math.floor(Math.random() * 1000), // Unique ID
                         date: dateStr, 
                         symbol: t.symbol, 
                         type: t.type, 
@@ -577,13 +578,15 @@
                         status: 'CLOSED' 
                     });
                     
-                    // 2. Active trade-er qty komiye baki ta thakbe (e.g. 30 - 20 = 10)
-                    t.qty = t.qty - closeQty;
+                    // 2. Active trade-er qty komiye baki ta rakha hobe
+                    t.qty = Number((t.qty - closeQty).toFixed(4));
                 }
 
                 saveData(); 
                 renderUI(); 
                 closeModalFunc(); 
+            } else {
+                alert("Trade not found!");
             }
         }
         // ================= TRADE MANAGEMENT =================
