@@ -162,8 +162,11 @@ def fetch_and_broadcast_prices():
     
     while True:
         try:
+            # Jodi login fail hoye thake (e.g. 30s OTP clash), 32 second wait kore notun OTP diye auto-login korbe
             if not SESSION_DATA["trade_token"]:
-                socketio.sleep(3)
+                print("🔄 Waiting 32s for fresh TOTP window to retry login...", flush=True)
+                socketio.sleep(32)
+                login_kotak()
                 continue
 
             quotes_list = fetch_quotes_once(debug=first_run)
@@ -235,6 +238,8 @@ def subscribe():
 @app.route('/api/test-quotes')
 def test_quotes():
     """Browser theke direct check korar jonno Kotak ki data pathachhe"""
+    if not SESSION_DATA["trade_token"]:
+        login_kotak()
     res = fetch_quotes_once(debug=True)
     return jsonify({
         "base_url": SESSION_DATA["base_url"],
