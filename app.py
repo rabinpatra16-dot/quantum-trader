@@ -1,4 +1,6 @@
 import os
+import csv
+import io
 import urllib.parse
 import requests
 import pyotp
@@ -17,15 +19,15 @@ CONSUMER_KEY = "24786b69-9a65-443e-9fe0-34d50f5dbcf1"
 MOBILE_NO = "8910025743"
 UCC = "YMPX5"
 MPIN = "073207"
-TOTP_SECRET = "W627DHISMLVJNAGLR2BSOE3UQM"
+TOTP_SECRET = "W627DHISMLVJNAGLR2BSOE3UQM" # Apnar latest working TOTP Secret
 
 # ==========================================
-# STOCK TOKEN MAP (NSE Cash Segment Tokens)
+# DEFAULT FALLBACK STOCK TOKEN MAP (NSE Equity)
 # ==========================================
 TOKEN_MAP = {
     "KPITTECH": "9683",
     "IRCTC": "13611",
-    "DOMS": "20551",
+    "DOMS": "20555",
     "MAZDOCK": "509",
     "CUPID": "9790",
     "TITAN": "3506",
@@ -42,17 +44,73 @@ TOKEN_MAP = {
     "LT": "11483",
     "AXISBANK": "5900",
     "KOTAKBANK": "1922",
-    "BHARTIARTL": "10604"
+    "BHARTIARTL": "10604",
+    "ZOMATO": "5097",
+    "HAL": "2303",
+    "BEL": "383",
+    "TRENT": "1964",
+    "CDSL": "21174",
+    "BSE": "19585",
+    "IREDA": "20261",
+    "JIOFIN": "18143",
+    "TATAPOWER": "3426",
+    "TATASTEEL": "3499"
 }
 REVERSE_TOKEN_MAP = {str(v): k for k, v in TOKEN_MAP.items()}
 
-SUBSCRIBED_SYMBOLS = set(TOKEN_MAP.keys())
+# Active subscribed symbols
+SUBSCRIBED_SYMBOLS = set([
+    "KPITTECH", "IRCTC", "DOMS", "MAZDOCK", 
+    "CUPID", "TITAN", "BAJAJFINSV", "SIEMENS"
+])
 
 SESSION_DATA = {
     "trade_token": None,
     "sid": None,
     "base_url": "https://gw-napi.kotaksecurities.com"
 }
+
+
+def load_nse_master_tokens():
+    """Kotak-er Scrip Master theke shob NSE EQ stock-er sothik token auto load korbe (No Pandas needed!)"""
+    try:
+        print("📥 Fetching Kotak NSE Scrip Master file paths...", flush=True)
+        paths_url = f"{SESSION_DATA['base_url']}/script-details/1.0/masterscrip/file-paths"
+        headers = {
+            "Authorization": CONSUMER_KEY,
+            "Content-Type": "application/json"
+        }
+        resp = requests.get(paths_url, headers=headers, timeout=10)
+        if resp.status_code == 200:
+            data = resp.json()
+            files = data.get("data", {}).get("filesPaths", [])
+            nse_cm_url = next((f for f in files if "nse_cm" in f.lower()), None)
+            
+            if nse_cm_url:
+                print(f"📥 Downloading NSE Master CSV from: {nse_cm_url}", flush=True)
+                csv_resp = requests.get(nse_cm_url, timeout=15)
+                if csv_resp.status_code == 200:
+                    reader = csv.DictReader(io.StringIO(csv_resp.text))
+                    count = 0
+                    for row in reader:
+                        # Clean keys & values
+                        row_clean = {k.strip(): (v.strip() if v else "") for k, v in row.items() if k}
+                        # Shudhu Equity (EQ / BE) series-er token nebe
+                        trd_sym = row_clean.get("pTrdSymbol", "")
+                        sym_name = row_clean.get("pSymbolName", "").upper()
+                        token = row_clean.get("pSymbol", "")
+                        group = row_clean.get("pGroup", "").upper()
+                        
+                        if token and (trd_sym.endswith("-EQ") or group == "EQ"):
+                            clean_name = trd_sym.replace("-EQ", "").upper() if trd_sym else sym_name
+                            if clean_name:
+                                TOKEN_MAP[clean_name] = str(token)
+                                REVERSE_TOKEN_MAP[str(token)] = clean_name
+                                count += 1
+                    print(f"✅ Auto-loaded {count} NSE Equity stock tokens successfully!", flush=True)
+    except Exception as e:
+        print("⚠️ Scrip Master Auto-Load Warning:", e, flush=True)
+
 
 def login_kotak():
     print("⏳ Initiating Kotak Neo Login via Direct API...", flush=True)
@@ -99,7 +157,9 @@ def login_kotak():
                 SESSION_DATA["sid"] = val_data["data"].get("sid", sid)
                 if "baseUrl" in val_data["data"] and val_data["data"]["baseUrl"]:
                     SESSION_DATA["base_url"] = val_data["data"]["baseUrl"].rstrip("/")
-                print(f"🔗 Using Base URL: {SESSION_DATA['base_url']}", flush=True)
+                
+                # Login hoye gelei shob stock-er sothik token auto load kore nebe
+                load_nse_master_tokens()
                 return True
             else:
                 print("❌ MPIN Validation Failed:", val_data, flush=True)
@@ -112,17 +172,21 @@ def login_kotak():
 
 
 def fetch_quotes_once(debug=False):
-    """Kotak theke ekbar quotes fetch kore return korbe"""
     queries = []
+    missing_syms = []
     for sym in list(SUBSCRIBED_SYMBOLS):
         tk = TOKEN_MAP.get(sym)
         if tk:
             queries.append(f"nse_cm|{tk}")
+        else:
+            missing_syms.append(sym)
+
+    if debug and missing_syms:
+        print(f"⚠️ Tokens missing for symbols: {missing_syms}", flush=True)
 
     if not queries:
         return None
 
-    # URL encode pipe character (|) as %7C and raw both
     raw_query = ",".join(queries)
     encoded_query = urllib.parse.quote(raw_query, safe=",")
     base = SESSION_DATA["base_url"]
@@ -130,8 +194,7 @@ def fetch_quotes_once(debug=False):
     urls_to_try = [
         f"{base}/script-details/1.0/quotes/neosymbol/{raw_query}/all",
         f"{base}/script-details/1.0/quotes/neosymbol/{encoded_query}/all",
-        f"{base}/apim/quotes/1.0/quotes/neosymbol/{raw_query}/all",
-        f"https://mis.kotaksecurities.com/script-details/1.0/quotes/neosymbol/{raw_query}/all"
+        f"{base}/apim/quotes/1.0/quotes/neosymbol/{raw_query}/all"
     ]
 
     headers = {
@@ -146,23 +209,21 @@ def fetch_quotes_once(debug=False):
         try:
             resp = requests.get(url, headers=headers, timeout=5)
             if debug:
-                print(f"🔍 Quotes API [{resp.status_code}] -> {url[:65]}... : {resp.text[:250]}", flush=True)
+                print(f"🔍 Quotes API [{resp.status_code}] -> {url[:65]}...", flush=True)
             if resp.status_code == 200:
                 return resp.json()
         except Exception as err:
             if debug:
-                print(f"⚠️ URL Try Error ({url[:40]}): {err}", flush=True)
+                print(f"⚠️ URL Try Error: {err}", flush=True)
     return None
 
 
 def fetch_and_broadcast_prices():
-    """SocketIO Background Task je prottek 3 second-e price broadcast korbe"""
     print("📡 Starting Live Price Broadcaster Thread...", flush=True)
     first_run = True
     
     while True:
         try:
-            # Jodi login fail hoye thake (e.g. 30s OTP clash), 32 second wait kore notun OTP diye auto-login korbe
             if not SESSION_DATA["trade_token"]:
                 print("🔄 Waiting 32s for fresh TOTP window to retry login...", flush=True)
                 socketio.sleep(32)
@@ -179,7 +240,9 @@ def fetch_and_broadcast_prices():
                 if isinstance(quotes_list, list):
                     for item in quotes_list:
                         tk = str(item.get("exchange_token") or item.get("tk") or "")
-                        sym = REVERSE_TOKEN_MAP.get(tk) or item.get("display_symbol") or item.get("symbol")
+                        # Display symbol ba REVERSE_TOKEN_MAP theke sothik nam ber kora
+                        raw_sym = str(item.get("display_symbol") or item.get("symbol") or "").replace("-EQ", "").strip().upper()
+                        sym = REVERSE_TOKEN_MAP.get(tk) or raw_sym
                         if not sym:
                             continue
 
@@ -225,7 +288,8 @@ def subscribe():
     symbols = data.get('symbols', [])
     
     for sym in symbols:
-        sym_clean = str(sym).upper().strip()
+        # 'NSE:KPITTECH-EQ' ba 'KPITTECH' -> shudhu 'KPITTECH' rakha
+        sym_clean = str(sym).upper().strip().split(":")[-1].replace("-EQ", "")
         SUBSCRIBED_SYMBOLS.add(sym_clean)
         
     print(f"✅ Subscribed Symbols Updated: {list(SUBSCRIBED_SYMBOLS)}", flush=True)
@@ -237,13 +301,12 @@ def subscribe():
 
 @app.route('/api/test-quotes')
 def test_quotes():
-    """Browser theke direct check korar jonno Kotak ki data pathachhe"""
     if not SESSION_DATA["trade_token"]:
         login_kotak()
     res = fetch_quotes_once(debug=True)
     return jsonify({
-        "base_url": SESSION_DATA["base_url"],
-        "logged_in": bool(SESSION_DATA["trade_token"]),
+        "subscribed_symbols": list(SUBSCRIBED_SYMBOLS),
+        "mapped_tokens": {s: TOKEN_MAP.get(s) for s in SUBSCRIBED_SYMBOLS},
         "quotes_response": res
     })
 
