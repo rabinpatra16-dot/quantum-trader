@@ -115,12 +115,14 @@ def login_kotak():
 
 
 def fetch_and_broadcast_prices():
-    """Background worker je prottek 2 second-e Kotak Quotes API theke Live CMP, Change o % Change pathabe"""
+    """Background worker je prottek 3 second-e Kotak Quotes API theke Live CMP, Change o % Change pathabe"""
     print("📡 Starting Live Price Broadcaster Thread...")
+    first_run = True
+    
     while True:
         try:
             if not SESSION_DATA["trade_token"]:
-                time.sleep(5)
+                time.sleep(3)
                 continue
 
             # Subscribed symbols theke Kotak query banano (e.g., nse_cm|9683,nse_cm|13611)
@@ -131,26 +133,45 @@ def fetch_and_broadcast_prices():
                     queries.append(f"nse_cm|{tk}")
 
             if not queries:
-                time.sleep(2)
+                time.sleep(3)
                 continue
 
             query_str = ",".join(queries)
-            quotes_url = f"{SESSION_DATA['base_url']}/apim/quotes/1.0/quotes/neosymbol/{query_str}/all"
+            
+            # Kotak New Architecture Quotes Endpoints (Duto possible URL format try korbe)
+            urls_to_try = [
+                f"{SESSION_DATA['base_url']}/script-details/1.0/quotes/neosymbol/{query_str}/all",
+                f"https://gw-napi.kotaksecurities.com/apim/quotes/1.0/quotes/neosymbol/{query_str}/all"
+            ]
 
+            # Notun Quotes API Header
             headers = {
                 "Authorization": CONSUMER_KEY,
                 "Content-Type": "application/json",
+                "neo-fin-key": "neotradeapi",
                 "Auth": SESSION_DATA["trade_token"],
-                "sid": SESSION_DATA["sid"],
-                "neo-fin-key": "neotradeapi"
+                "sid": SESSION_DATA["sid"]
             }
 
-            resp = requests.get(quotes_url, headers=headers, timeout=5)
-            if resp.status_code == 200:
-                quotes_list = resp.json()
-                # Kotak Quotes API list of dicts return kore
+            quotes_list = None
+            for quotes_url in urls_to_try:
+                resp = requests.get(quotes_url, headers=headers, timeout=5)
+                if first_run:
+                    print(f"🔍 Quotes API Test [{resp.status_code}] -> {quotes_url[:60]}... : {resp.text[:200]}")
+                
+                if resp.status_code == 200:
+                    quotes_list = resp.json()
+                    break
+
+            first_run = False
+
+            if quotes_list:
                 if isinstance(quotes_list, dict) and "data" in quotes_list:
                     quotes_list = quotes_list["data"]
+                elif isinstance(quotes_list, dict) and "fault" in quotes_list:
+                    print("❌ Quotes API Fault:", quotes_list)
+                    time.sleep(5)
+                    continue
 
                 if isinstance(quotes_list, list):
                     for item in quotes_list:
@@ -159,10 +180,12 @@ def fetch_and_broadcast_prices():
                         if not sym:
                             continue
 
-                        ltp = float(item.get("ltp") or 0)
+                        ltp = float(item.get("ltp") or item.get("last_traded_price") or 0)
+                        
                         # Previous close price
+                        ohlc = item.get("ohlc") or {}
                         prev_close = float(
-                            item.get("ohlc", {}).get("close")
+                            ohlc.get("close")
                             or item.get("prev_close")
                             or item.get("c")
                             or ltp
@@ -176,20 +199,22 @@ def fetch_and_broadcast_prices():
                         )
 
                         if ltp > 0:
-                            socketio.emit('live_price', {
+                            # Frontend-er je kono event name-er sathe match koranor jonno emit
+                            payload_data = {
                                 'symbol': sym,
+                                'tk': tk,
                                 'price': round(ltp, 2),
+                                'ltp': round(ltp, 2),
                                 'change': round(val_change, 2),
                                 'pchange': round(pct_change, 2)
-                            })
-            elif resp.status_code in (401, 403):
-                print("🔄 Session token expired, re-logging in...")
-                login_kotak()
-
+                            }
+                            socketio.emit('live_price', payload_data)
+                            socketio.emit('price_update', payload_data)
+                            
         except Exception as e:
             print("⚠️ Price Fetch Error:", e)
 
-        time.sleep(2)
+        time.sleep(3)
 
 
 @app.route('/api/subscribe', methods=['POST', 'OPTIONS'])
