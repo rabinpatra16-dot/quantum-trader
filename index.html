@@ -521,12 +521,68 @@
         }
         function closeEditModal() { document.getElementById('editModal').style.display = 'none'; }
 
-        function openCloseModal(id, symbol) {
-            document.getElementById('modalTradeId').value = id; document.getElementById('modalTitle').innerText = `Close ${symbol}`;
+       function openCloseModal(id, symbol) {
+            const t = trades.find(t => t.id === id);
+            if (!t) return;
+            document.getElementById('modalTradeId').value = id; 
+            document.getElementById('modalTitle').innerText = `Close Position: ${symbol}`;
+            document.getElementById('maxQtyText').innerText = t.qty;
+            document.getElementById('modalCloseQty').value = t.qty; // Default-e puro qty select thakbe (Full Close)
             document.getElementById('closeModal').style.display = 'flex';
         }
-        function closeModalFunc() { document.getElementById('closeModal').style.display = 'none'; }
+        function closeModalFunc() { 
+            document.getElementById('closeModal').style.display = 'none'; 
+            document.getElementById('modalExitPrice').value = '';
+            document.getElementById('modalCloseQty').value = '';
+        }
 
+        function submitCloseTrade() {
+            const exit = parseFloat(document.getElementById('modalExitPrice').value); 
+            const closeQty = parseFloat(document.getElementById('modalCloseQty').value);
+            
+            if (isNaN(exit) || exit <= 0) return alert("Enter valid exit price");
+            if (isNaN(closeQty) || closeQty <= 0) return alert("Enter valid quantity to close");
+
+            const t = trades.find(t => t.id === parseInt(document.getElementById('modalTradeId').value));
+            if (t) {
+                if (closeQty > t.qty) {
+                    return alert("Closing quantity cannot exceed active quantity (" + t.qty + ")");
+                }
+
+                const dateStr = new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+                
+                // Partial PNL calculation for the closed portion
+                const partialPnL = t.type === 'LONG' ? (exit - t.entry) * closeQty : (t.entry - exit) * closeQty;
+
+                if (closeQty === t.qty) {
+                    // 100% Full Close
+                    t.exit = exit; 
+                    t.status = 'CLOSED'; 
+                    t.pnl = partialPnL;
+                } else {
+                    // Partial Close: Create a new closed trade entry in ledger & reduce qty in active trade
+                    trades.unshift({ 
+                        id: Date.now(), 
+                        date: dateStr, 
+                        symbol: t.symbol, 
+                        type: t.type, 
+                        qty: closeQty, 
+                        entry: t.entry, 
+                        sl: t.sl, 
+                        exit: exit, 
+                        pnl: partialPnL, 
+                        status: 'CLOSED' 
+                    });
+                    
+                    // Reduce remaining quantity in current open trade
+                    t.qty -= closeQty;
+                }
+
+                saveData(); 
+                renderUI(); 
+                closeModalFunc(); 
+            }
+        }
         // ================= TRADE MANAGEMENT =================
         document.getElementById('tradeForm').addEventListener('submit', function(e) {
             e.preventDefault();
