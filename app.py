@@ -91,7 +91,6 @@ def login_kotak():
             val_headers["Auth"] = view_token
             
             val_payload = {
-                "ucc": UCC,
                 "mpin": MPIN
             }
             
