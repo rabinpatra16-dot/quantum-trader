@@ -93,16 +93,14 @@ def load_nse_master_tokens():
                     reader = csv.DictReader(io.StringIO(csv_resp.text))
                     count = 0
                     for row in reader:
-                        # Clean keys & values
                         row_clean = {k.strip(): (v.strip() if v else "") for k, v in row.items() if k}
-                        # Shudhu Equity (EQ / BE) series-er token nebe
                         trd_sym = row_clean.get("pTrdSymbol", "")
                         sym_name = row_clean.get("pSymbolName", "").upper()
                         token = row_clean.get("pSymbol", "")
                         group = row_clean.get("pGroup", "").upper()
                         
-                        if token and (trd_sym.endswith("-EQ") or group == "EQ"):
-                            clean_name = trd_sym.replace("-EQ", "").upper() if trd_sym else sym_name
+                        if token and (trd_sym.endswith("-EQ") or group in ("EQ", "BE")):
+                            clean_name = trd_sym.replace("-EQ", "").replace("-BE", "").upper() if trd_sym else sym_name
                             if clean_name:
                                 TOKEN_MAP[clean_name] = str(token)
                                 REVERSE_TOKEN_MAP[str(token)] = clean_name
@@ -158,7 +156,6 @@ def login_kotak():
                 if "baseUrl" in val_data["data"] and val_data["data"]["baseUrl"]:
                     SESSION_DATA["base_url"] = val_data["data"]["baseUrl"].rstrip("/")
                 
-                # Login hoye gelei shob stock-er sothik token auto load kore nebe
                 load_nse_master_tokens()
                 return True
             else:
@@ -240,7 +237,6 @@ def fetch_and_broadcast_prices():
                 if isinstance(quotes_list, list):
                     for item in quotes_list:
                         tk = str(item.get("exchange_token") or item.get("tk") or "")
-                        # Display symbol ba REVERSE_TOKEN_MAP theke sothik nam ber kora
                         raw_sym = str(item.get("display_symbol") or item.get("symbol") or "").replace("-EQ", "").strip().upper()
                         sym = REVERSE_TOKEN_MAP.get(tk) or raw_sym
                         if not sym:
@@ -252,13 +248,16 @@ def fetch_and_broadcast_prices():
                             ohlc.get("close")
                             or item.get("prev_close")
                             or item.get("c")
+                            or item.get("close_price")
                             or ltp
                         )
 
-                        val_change = float(item.get("change") or (ltp - prev_close))
-                        pct_change = float(
-                            item.get("per_change")
-                            or ((val_change / prev_close) * 100 if prev_close > 0 else 0.0)
+                        raw_chg = item.get("change") if item.get("change") is not None else item.get("net_change")
+                        val_change = float(raw_chg) if raw_chg is not None else (ltp - prev_close)
+
+                        raw_pchg = item.get("per_change") if item.get("per_change") is not None else item.get("pchange")
+                        pct_change = float(raw_pchg) if raw_pchg is not None else (
+                            ((val_change / prev_close) * 100) if prev_close > 0 else 0.0
                         )
 
                         if ltp > 0:
@@ -279,6 +278,150 @@ def fetch_and_broadcast_prices():
         socketio.sleep(3)
 
 
+# =========================================================
+# 🏦 READ-ONLY KOTAK DEMAT HOLDINGS ENDPOINT (NO BUY/SELL)
+# =========================================================
+@app.route('/api/holdings', methods=['GET'])
+def get_kotak_holdings():
+    if not SESSION_DATA["trade_token"]:
+        login_kotak()
+
+    base = SESSION_DATA["base_url"]
+    headers = {
+        "Authorization": CONSUMER_KEY,
+        "neo-fin-key": "neotradeapi",
+        "Auth": SESSION_DATA["trade_token"],
+        "sid": SESSION_DATA["sid"],
+        "accept": "application/json"
+    }
+
+    urls_to_try = [
+        f"{base}/portfolio/v1/holdings",
+        f"{base}/portfolio/v1/holdings?alt=false",
+        f"{base}/apim/portfolio/1.0/portfolio/v1/holdings"
+    ]
+
+    raw_holdings = []
+    last_error = None
+
+    for url in urls_to_try:
+        try:
+            resp = requests.get(url, headers=headers, timeout=8)
+            if resp.status_code == 200:
+                res_json = resp.json()
+                if isinstance(res_json, dict) and "data" in res_json:
+                    raw_holdings = res_json["data"]
+                    break
+                elif isinstance(res_json, list):
+                    raw_holdings = res_json
+                    break
+            elif resp.status_code == 401:
+                # Token expire hole re-login kore retry korbe
+                login_kotak()
+                headers["Auth"] = SESSION_DATA["trade_token"]
+                headers["sid"] = SESSION_DATA["sid"]
+        except Exception as e:
+            last_error = str(e)
+
+    holdings_list = []
+    if isinstance(raw_holdings, list):
+        for item in raw_holdings:
+            raw_sym = (
+                item.get("displaySymbol")
+                or item.get("symbol")
+                or item.get("tradingSymbol")
+                or item.get("instrumentName")
+                or ""
+            )
+            sym = str(raw_sym).upper().replace("-EQ", "").replace("-BE", "").strip()
+
+            qty = float(
+                item.get("quantity")
+                or item.get("holdingQuantity")
+                or item.get("totalQty")
+                or item.get("sellableQty")
+                or 0
+            )
+            if not sym or qty <= 0:
+                continue
+
+            holding_cost = float(item.get("holdingCost") or item.get("totalCost") or 0)
+            avg_price = float(
+                item.get("averagePrice")
+                or item.get("avgPrice")
+                or item.get("purchasePrice")
+                or (holding_cost / qty if qty > 0 else 0)
+            )
+
+            mkt_value = float(item.get("mktValue") or 0)
+            ltp = float(
+                item.get("mktPrice")
+                or item.get("ltp")
+                or (mkt_value / qty if mkt_value > 0 and qty > 0 else 0)
+                or item.get("closingPrice")
+                or avg_price
+            )
+
+            prev_close = float(item.get("closingPrice") or item.get("prevClose") or ltp)
+            day_change = ltp - prev_close
+            day_pct = ((day_change / prev_close) * 100) if prev_close > 0 else 0.0
+
+            # Holding response-e exchange token thakle TOKEN_MAP-e save o live subscribe kore nebe
+            inst_token = item.get("instrumentToken") or item.get("exchangeIdentifier") or item.get("token")
+            if inst_token and sym not in TOKEN_MAP:
+                TOKEN_MAP[sym] = str(inst_token)
+                REVERSE_TOKEN_MAP[str(inst_token)] = sym
+
+            SUBSCRIBED_SYMBOLS.add(sym)
+
+            holdings_list.append({
+                "symbol": sym,
+                "exchange": item.get("exchangeSegment") or "NSE",
+                "qty": qty,
+                "avgPrice": round(avg_price, 2),
+                "liveCMP": round(ltp, 2),
+                "prevClose": round(prev_close, 2),
+                "dayChange": round(day_change, 2),
+                "dayPctChange": round(day_pct, 2)
+            })
+
+    # Live quotes theke latest LTP o Today's Change sync kore dewa
+    quotes_res = fetch_quotes_once(debug=False)
+    if quotes_res:
+        q_data = quotes_res.get("data", quotes_res) if isinstance(quotes_res, dict) else quotes_res
+        if isinstance(q_data, list):
+            q_map = {}
+            for q in q_data:
+                tk = str(q.get("exchange_token") or q.get("tk") or "")
+                rs = str(q.get("display_symbol") or q.get("symbol") or "").replace("-EQ", "").strip().upper()
+                s_name = REVERSE_TOKEN_MAP.get(tk) or rs
+                if s_name:
+                    q_map[s_name] = q
+
+            for h in holdings_list:
+                q_item = q_map.get(h["symbol"])
+                if q_item:
+                    q_ltp = float(q_item.get("ltp") or q_item.get("last_traded_price") or h["liveCMP"])
+                    ohlc = q_item.get("ohlc") or {}
+                    q_prev = float(ohlc.get("close") or q_item.get("prev_close") or q_item.get("c") or h["prevClose"] or q_ltp)
+                    raw_c = q_item.get("change") if q_item.get("change") is not None else q_item.get("net_change")
+                    q_chg = float(raw_c) if raw_c is not None else (q_ltp - q_prev)
+                    raw_pc = q_item.get("per_change") if q_item.get("per_change") is not None else q_item.get("pchange")
+                    q_pchg = float(raw_pc) if raw_pc is not None else (((q_chg / q_prev) * 100) if q_prev > 0 else 0.0)
+
+                    h["liveCMP"] = round(q_ltp, 2)
+                    h["prevClose"] = round(q_prev, 2)
+                    h["dayChange"] = round(q_chg, 2)
+                    h["dayPctChange"] = round(q_pchg, 2)
+
+    return jsonify({
+        "status": "success",
+        "count": len(holdings_list),
+        "data": holdings_list,
+        "error": last_error if not holdings_list else None
+    }), 200
+
+
 @app.route('/api/subscribe', methods=['POST', 'OPTIONS'])
 def subscribe():
     if request.method == 'OPTIONS':
@@ -288,7 +431,6 @@ def subscribe():
     symbols = data.get('symbols', [])
     
     for sym in symbols:
-        # 'NSE:KPITTECH-EQ' ba 'KPITTECH' -> shudhu 'KPITTECH' rakha
         sym_clean = str(sym).upper().strip().split(":")[-1].replace("-EQ", "")
         SUBSCRIBED_SYMBOLS.add(sym_clean)
         
